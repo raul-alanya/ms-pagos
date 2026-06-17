@@ -36,6 +36,36 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Registrar Rechazo",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"codigoRechazo\": \"05\",\r\n    \"motivoRechazo\": \"Fondos insuficientes\",\r\n    \"fechaRechazo\": \"2026-06-16\",\r\n    \"estado\": \"RECHAZADO\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/pagos/rechazo",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "pagos",
+            "rechazo"
+          ]
+        }
+      },
+      "response": []
     }
   ]
 }
