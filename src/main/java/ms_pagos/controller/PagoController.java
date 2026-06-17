@@ -1,5 +1,6 @@
 package ms_pagos.controller;
 
+<<<<<<< HEAD
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,11 +25,24 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/pagos")
 @Tag(name = "Pagos Online", description = "Endpoints para gestionar pagos online, respuestas y rechazos IZIPAY")
+=======
+import ms_pagos.model.PagoRechazo;
+import ms_pagos.model.PagoRequest;
+import ms_pagos.model.PagoResponse;
+import ms_pagos.service.PagoService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/pagos")
+>>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66
 public class PagoController {
 
     @Autowired
     private PagoService pagoService;
 
+<<<<<<< HEAD
     // ─── PAGO REQUEST ────────────────────────────────────────────────────────
 
     @Operation(
@@ -211,3 +225,17 @@ public class PagoController {
                         .body(ApiResponseDTO.error("No se encontró rechazo para el pago ID: " + pagoId)));
     }
 }
+=======
+    @PostMapping("/procesar")
+    public ResponseEntity<PagoResponse> procesarPago(@RequestBody PagoRequest pagoRequest) {
+        PagoResponse resultado = pagoService.procesarPago(pagoRequest);
+        return ResponseEntity.ok(resultado);
+    }
+
+    @PostMapping("/rechazo")
+    public ResponseEntity<PagoRechazo> registrarRechazo(@RequestBody PagoRechazo pagoRechazo) {
+        PagoRechazo resultado = pagoService.registrarRechazo(pagoRechazo);
+        return ResponseEntity.ok(resultado);
+    }
+}
+>>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66

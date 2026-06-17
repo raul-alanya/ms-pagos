@@ -2,6 +2,7 @@
   "info": {
     "_postman_id": "32db6b31-8a40-4baf-9b84-526b81eb0dea",
     "name": "ms-pagos",
+<<<<<<< HEAD
     "description": "Colección completa del Microservicio de Pagos Online con IZIPAY. Incluye endpoints para configuración, generación de token, procesamiento de pagos, respuestas y rechazos.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -319,3 +320,72 @@
     }
   ]
 }
+=======
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54937331",
+    "_collection_link": "https://go.postman.co/collection/54937331-32db6b31-8a40-4baf-9b84-526b81eb0dea?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Procesar Pago",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"cardnumber\": \"4111111111111111\",\r\n    \"cardholdername\": \"Juan Perez\",\r\n    \"cvv\": \"123\",\r\n    \"cardexpiry\": \"12/26\",\r\n    \"totalamount\": 100.00,\r\n    \"reference\": \"ORD-001\",\r\n    \"email\": \"juan@gmail.com\",\r\n    \"phone\": \"987654321\",\r\n    \"clientip\": \"192.168.1.1\",\r\n    \"clientcountry\": \"PE\",\r\n    \"clienturl\": \"https://mitienda.com\",\r\n    \"transactiontype\": \"Sale\",\r\n    \"currency\": \"PEN\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/pagos/procesar",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "pagos",
+            "procesar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Registrar Rechazo",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"codigoRechazo\": \"05\",\r\n    \"motivoRechazo\": \"Fondos insuficientes\",\r\n    \"fechaRechazo\": \"2026-06-16\",\r\n    \"estado\": \"RECHAZADO\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/pagos/rechazo",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "pagos",
+            "rechazo"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
+>>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66

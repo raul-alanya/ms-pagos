@@ -1,20 +1,34 @@
 package ms_pagos.service;
 
+<<<<<<< HEAD
 import ms_pagos.dto.PagoRechazoDTO;
 import ms_pagos.dto.PagoRequestDTO;
 import ms_pagos.dto.PagoResponseDTO;
 import ms_pagos.entity.PagoRechazo;
 import ms_pagos.entity.PagoRequest;
 import ms_pagos.entity.PagoResponse;
+=======
+import ms_pagos.config.IzipayClient;
+import ms_pagos.model.PagoRechazo;
+import ms_pagos.model.PagoRequest;
+import ms_pagos.model.PagoResponse;
+>>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66
 import ms_pagos.repository.PagoRechazoRepository;
 import ms_pagos.repository.PagoRequestRepository;
 import ms_pagos.repository.PagoResponseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+<<<<<<< HEAD
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+=======
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import java.util.HashMap;
+import java.util.Map;
+>>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66
 
 @Service
 public class PagoService {
@@ -28,6 +42,7 @@ public class PagoService {
     @Autowired
     private PagoRechazoRepository pagoRechazoRepository;
 
+<<<<<<< HEAD
     // ─── PAGO REQUEST ────────────────────────────────────────────────────────
 
     // Registrar datos de envío de pago online
@@ -127,3 +142,55 @@ public class PagoService {
         return pagoRechazoRepository.findByPagoRequestId(pagoRequestId);
     }
 }
+=======
+    @Autowired
+    private IzipayClient izipayClient;
+
+    @Value("${izipay.merchant-code}")
+    private String merchantCode;
+
+    public PagoResponse procesarPago(PagoRequest pagoRequest) {
+        PagoRequest pagoGuardado = pagoRequestRepository.save(pagoRequest);
+
+        Map<String, Object> requestIzipay = new HashMap<>();
+        requestIzipay.put("merchantCode", merchantCode);
+        requestIzipay.put("orderNumber", pagoGuardado.getReference());
+        requestIzipay.put("amount", pagoGuardado.getTotalamount());
+        requestIzipay.put("currency", pagoGuardado.getCurrency());
+        requestIzipay.put("cardNumber", pagoGuardado.getCardnumber());
+        requestIzipay.put("cardHolderName", pagoGuardado.getCardholdername());
+        requestIzipay.put("cvv", pagoGuardado.getCvv());
+        requestIzipay.put("cardExpiry", pagoGuardado.getCardexpiry());
+        requestIzipay.put("email", pagoGuardado.getEmail());
+        requestIzipay.put("clientIp", pagoGuardado.getClientip());
+        requestIzipay.put("clientCountry", pagoGuardado.getClientcountry());
+
+        Map<String, Object> respuestaIzipay = izipayClient.procesarPago(requestIzipay);
+
+        String estado = String.valueOf(respuestaIzipay.get("status"));
+
+        if (estado.equals("RECHAZADO") || estado.equals("DECLINED")) {
+            PagoRechazo rechazo = new PagoRechazo();
+            rechazo.setPagoRequest(pagoGuardado);
+            rechazo.setCodigoRechazo(String.valueOf(respuestaIzipay.get("code")));
+            rechazo.setMotivoRechazo(String.valueOf(respuestaIzipay.get("message")));
+            rechazo.setFechaRechazo(String.valueOf(respuestaIzipay.get("dateTime")));
+            rechazo.setEstado("RECHAZADO");
+            pagoRechazoRepository.save(rechazo);
+        }
+
+        PagoResponse pagoResponse = new PagoResponse();
+        pagoResponse.setPagoRequest(pagoGuardado);
+        pagoResponse.setCodigoRespuesta(String.valueOf(respuestaIzipay.get("code")));
+        pagoResponse.setEstado(estado);
+        pagoResponse.setMensaje(String.valueOf(respuestaIzipay.get("message")));
+        pagoResponse.setFechaRespuesta(String.valueOf(respuestaIzipay.get("dateTime")));
+
+        return pagoResponseRepository.save(pagoResponse);
+    }
+
+    public PagoRechazo registrarRechazo(PagoRechazo pagoRechazo) {
+        return pagoRechazoRepository.save(pagoRechazo);
+    }
+}
+>>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66
