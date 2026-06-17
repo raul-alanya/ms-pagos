@@ -1,6 +1,5 @@
 package ms_pagos.controller;
 
-<<<<<<< HEAD
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -11,6 +10,7 @@ import ms_pagos.dto.ApiResponseDTO;
 import ms_pagos.dto.PagoRechazoDTO;
 import ms_pagos.dto.PagoRequestDTO;
 import ms_pagos.dto.PagoResponseDTO;
+import ms_pagos.dto.PagoResponseResultDTO;
 import ms_pagos.entity.PagoRechazo;
 import ms_pagos.entity.PagoRequest;
 import ms_pagos.entity.PagoResponse;
@@ -25,30 +25,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/pagos")
 @Tag(name = "Pagos Online", description = "Endpoints para gestionar pagos online, respuestas y rechazos IZIPAY")
-=======
-import ms_pagos.model.PagoRechazo;
-import ms_pagos.model.PagoRequest;
-import ms_pagos.model.PagoResponse;
-import ms_pagos.service.PagoService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-@RestController
-@RequestMapping("/api/pagos")
->>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66
 public class PagoController {
 
     @Autowired
     private PagoService pagoService;
 
-<<<<<<< HEAD
     // ─── PAGO REQUEST ────────────────────────────────────────────────────────
 
     @Operation(
         summary = "Registrar datos de envío de pago online",
-        description = "Registra los datos del pago enviado a IZIPAY: información de tarjeta, " +
-                      "monto, referencia y datos del cliente"
+        description = "Registra los datos del pago enviado a IZIPAY: información de tarjeta, monto, referencia y datos del cliente"
     )
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Pago registrado exitosamente"),
@@ -91,8 +77,7 @@ public class PagoController {
             @Parameter(description = "ID del pago", example = "1")
             @PathVariable Long id) {
         return pagoService.obtenerPagoPorId(id)
-                .map(pago -> ResponseEntity.ok(
-                        ApiResponseDTO.ok("Pago encontrado", pago)))
+                .map(pago -> ResponseEntity.ok(ApiResponseDTO.ok("Pago encontrado", pago)))
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponseDTO.error("Pago no encontrado con ID: " + id)));
     }
@@ -114,8 +99,9 @@ public class PagoController {
 
     @Operation(
         summary = "Registrar respuesta de pago online (código de operación)",
-        description = "Registra los datos de respuesta recibidos desde IZIPAY: código de operación, " +
-                      "código de transacción y estado del pago procesado"
+        description = "Registra los datos de respuesta recibidos desde IZIPAY. El código de transacción " +
+                      "se genera automáticamente si no se proporciona. Devuelve solo los datos importantes: " +
+                      "código de transacción, referencia de orden, estado, fecha y mensaje."
     )
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Respuesta de pago registrada exitosamente"),
@@ -123,12 +109,12 @@ public class PagoController {
         @ApiResponse(responseCode = "404", description = "Pago original no encontrado")
     })
     @PostMapping("/respuesta")
-    public ResponseEntity<ApiResponseDTO<PagoResponse>> registrarRespuesta(
+    public ResponseEntity<ApiResponseDTO<PagoResponseResultDTO>> registrarRespuesta(
             @Valid @RequestBody PagoResponseDTO dto) {
         try {
-            PagoResponse response = pagoService.registrarRespuesta(dto);
+            PagoResponseResultDTO result = pagoService.registrarRespuesta(dto);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponseDTO.ok("Respuesta de pago registrada exitosamente", response));
+                    .body(ApiResponseDTO.ok("Respuesta de pago registrada exitosamente", result));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponseDTO.error(e.getMessage()));
@@ -151,19 +137,19 @@ public class PagoController {
 
     @Operation(
         summary = "Obtener respuesta de pago por ID del pago original",
-        description = "Retorna la respuesta IZIPAY asociada al pago con el ID especificado"
+        description = "Retorna la respuesta IZIPAY con los datos importantes: código de transacción, " +
+                      "referencia de orden, estado, fecha y mensaje"
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Respuesta encontrada"),
         @ApiResponse(responseCode = "404", description = "Respuesta no encontrada para ese pago")
     })
     @GetMapping("/{pagoId}/respuesta")
-    public ResponseEntity<ApiResponseDTO<PagoResponse>> obtenerRespuestaPorPago(
+    public ResponseEntity<ApiResponseDTO<PagoResponseResultDTO>> obtenerRespuestaPorPago(
             @Parameter(description = "ID del pago original", example = "1")
             @PathVariable Long pagoId) {
         return pagoService.obtenerRespuestaPorPagoId(pagoId)
-                .map(resp -> ResponseEntity.ok(
-                        ApiResponseDTO.ok("Respuesta encontrada", resp)))
+                .map(resp -> ResponseEntity.ok(ApiResponseDTO.ok("Respuesta encontrada", resp)))
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponseDTO.error("No se encontró respuesta para el pago ID: " + pagoId)));
     }
@@ -219,23 +205,8 @@ public class PagoController {
             @Parameter(description = "ID del pago original", example = "1")
             @PathVariable Long pagoId) {
         return pagoService.obtenerRechazoPorPagoId(pagoId)
-                .map(rechazo -> ResponseEntity.ok(
-                        ApiResponseDTO.ok("Rechazo encontrado", rechazo)))
+                .map(rechazo -> ResponseEntity.ok(ApiResponseDTO.ok("Rechazo encontrado", rechazo)))
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponseDTO.error("No se encontró rechazo para el pago ID: " + pagoId)));
     }
 }
-=======
-    @PostMapping("/procesar")
-    public ResponseEntity<PagoResponse> procesarPago(@RequestBody PagoRequest pagoRequest) {
-        PagoResponse resultado = pagoService.procesarPago(pagoRequest);
-        return ResponseEntity.ok(resultado);
-    }
-
-    @PostMapping("/rechazo")
-    public ResponseEntity<PagoRechazo> registrarRechazo(@RequestBody PagoRechazo pagoRechazo) {
-        PagoRechazo resultado = pagoService.registrarRechazo(pagoRechazo);
-        return ResponseEntity.ok(resultado);
-    }
-}
->>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66

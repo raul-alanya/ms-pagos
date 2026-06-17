@@ -1,34 +1,23 @@
 package ms_pagos.service;
 
-<<<<<<< HEAD
 import ms_pagos.dto.PagoRechazoDTO;
 import ms_pagos.dto.PagoRequestDTO;
 import ms_pagos.dto.PagoResponseDTO;
+import ms_pagos.dto.PagoResponseResultDTO;
 import ms_pagos.entity.PagoRechazo;
 import ms_pagos.entity.PagoRequest;
 import ms_pagos.entity.PagoResponse;
-=======
-import ms_pagos.config.IzipayClient;
-import ms_pagos.model.PagoRechazo;
-import ms_pagos.model.PagoRequest;
-import ms_pagos.model.PagoResponse;
->>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66
 import ms_pagos.repository.PagoRechazoRepository;
 import ms_pagos.repository.PagoRequestRepository;
 import ms_pagos.repository.PagoResponseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-<<<<<<< HEAD
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
-=======
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import java.util.HashMap;
-import java.util.Map;
->>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66
 
 @Service
 public class PagoService {
@@ -42,7 +31,6 @@ public class PagoService {
     @Autowired
     private PagoRechazoRepository pagoRechazoRepository;
 
-<<<<<<< HEAD
     // ─── PAGO REQUEST ────────────────────────────────────────────────────────
 
     // Registrar datos de envío de pago online
@@ -81,16 +69,29 @@ public class PagoService {
 
     // ─── PAGO RESPONSE ───────────────────────────────────────────────────────
 
+    // Genera código de transacción automático: TXN-YYYYMMDD-XXXX
+    private String generarCodigoTransaccion() {
+        String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String secuencia = String.format("%04d", pagoResponseRepository.count() + 1);
+        return "TXN-" + fecha + "-" + secuencia;
+    }
+
     // Registrar datos de respuesta de pago (código de operación)
-    public PagoResponse registrarRespuesta(PagoResponseDTO dto) {
+    public PagoResponseResultDTO registrarRespuesta(PagoResponseDTO dto) {
         // Verifica que exista el pago original
-        pagoRequestRepository.findById(dto.getPagoRequestId())
+        PagoRequest pagoOriginal = pagoRequestRepository.findById(dto.getPagoRequestId())
                 .orElseThrow(() -> new RuntimeException(
                         "Pago no encontrado con ID: " + dto.getPagoRequestId()));
 
         PagoResponse response = new PagoResponse();
         response.setCodigoRespuesta(dto.getCodigoRespuesta());
-        response.setCodigoTransaccion(dto.getCodigoTransaccion());
+
+        // Genera código de transacción automáticamente si no viene
+        String codigoTxn = (dto.getCodigoTransaccion() != null && !dto.getCodigoTransaccion().isEmpty())
+                ? dto.getCodigoTransaccion()
+                : generarCodigoTransaccion();
+        response.setCodigoTransaccion(codigoTxn);
+
         response.setEstado(dto.getEstado() != null ? dto.getEstado() : "APROBADO");
         response.setFechaRespuesta(dto.getFechaRespuesta() != null
                 ? dto.getFechaRespuesta()
@@ -98,7 +99,19 @@ public class PagoService {
         response.setMensaje(dto.getMensaje());
         response.setPagoRequestId(dto.getPagoRequestId());
 
-        return pagoResponseRepository.save(response);
+        PagoResponse saved = pagoResponseRepository.save(response);
+
+        // Devuelve solo lo importante con la referencia de la orden
+        PagoResponseResultDTO result = new PagoResponseResultDTO();
+        result.setId(saved.getId());
+        result.setCodigoTransaccion(saved.getCodigoTransaccion());
+        result.setReferencia(pagoOriginal.getReference());
+        result.setCodigoRespuesta(saved.getCodigoRespuesta());
+        result.setEstado(saved.getEstado());
+        result.setFechaRespuesta(saved.getFechaRespuesta());
+        result.setMensaje(saved.getMensaje());
+
+        return result;
     }
 
     // Listar todas las respuestas
@@ -106,9 +119,24 @@ public class PagoService {
         return pagoResponseRepository.findAll();
     }
 
-    // Obtener respuesta por ID del pago original
-    public Optional<PagoResponse> obtenerRespuestaPorPagoId(Long pagoRequestId) {
-        return pagoResponseRepository.findByPagoRequestId(pagoRequestId);
+    // Obtener respuesta resumida por ID del pago original
+    public Optional<PagoResponseResultDTO> obtenerRespuestaPorPagoId(Long pagoRequestId) {
+        Optional<PagoResponse> responseOpt = pagoResponseRepository.findByPagoRequestId(pagoRequestId);
+        if (responseOpt.isEmpty()) return Optional.empty();
+
+        PagoResponse resp = responseOpt.get();
+        PagoRequest pagoOriginal = pagoRequestRepository.findById(pagoRequestId).orElse(null);
+
+        PagoResponseResultDTO result = new PagoResponseResultDTO();
+        result.setId(resp.getId());
+        result.setCodigoTransaccion(resp.getCodigoTransaccion());
+        result.setReferencia(pagoOriginal != null ? pagoOriginal.getReference() : null);
+        result.setCodigoRespuesta(resp.getCodigoRespuesta());
+        result.setEstado(resp.getEstado());
+        result.setFechaRespuesta(resp.getFechaRespuesta());
+        result.setMensaje(resp.getMensaje());
+
+        return Optional.of(result);
     }
 
     // ─── PAGO RECHAZO ────────────────────────────────────────────────────────
@@ -142,55 +170,3 @@ public class PagoService {
         return pagoRechazoRepository.findByPagoRequestId(pagoRequestId);
     }
 }
-=======
-    @Autowired
-    private IzipayClient izipayClient;
-
-    @Value("${izipay.merchant-code}")
-    private String merchantCode;
-
-    public PagoResponse procesarPago(PagoRequest pagoRequest) {
-        PagoRequest pagoGuardado = pagoRequestRepository.save(pagoRequest);
-
-        Map<String, Object> requestIzipay = new HashMap<>();
-        requestIzipay.put("merchantCode", merchantCode);
-        requestIzipay.put("orderNumber", pagoGuardado.getReference());
-        requestIzipay.put("amount", pagoGuardado.getTotalamount());
-        requestIzipay.put("currency", pagoGuardado.getCurrency());
-        requestIzipay.put("cardNumber", pagoGuardado.getCardnumber());
-        requestIzipay.put("cardHolderName", pagoGuardado.getCardholdername());
-        requestIzipay.put("cvv", pagoGuardado.getCvv());
-        requestIzipay.put("cardExpiry", pagoGuardado.getCardexpiry());
-        requestIzipay.put("email", pagoGuardado.getEmail());
-        requestIzipay.put("clientIp", pagoGuardado.getClientip());
-        requestIzipay.put("clientCountry", pagoGuardado.getClientcountry());
-
-        Map<String, Object> respuestaIzipay = izipayClient.procesarPago(requestIzipay);
-
-        String estado = String.valueOf(respuestaIzipay.get("status"));
-
-        if (estado.equals("RECHAZADO") || estado.equals("DECLINED")) {
-            PagoRechazo rechazo = new PagoRechazo();
-            rechazo.setPagoRequest(pagoGuardado);
-            rechazo.setCodigoRechazo(String.valueOf(respuestaIzipay.get("code")));
-            rechazo.setMotivoRechazo(String.valueOf(respuestaIzipay.get("message")));
-            rechazo.setFechaRechazo(String.valueOf(respuestaIzipay.get("dateTime")));
-            rechazo.setEstado("RECHAZADO");
-            pagoRechazoRepository.save(rechazo);
-        }
-
-        PagoResponse pagoResponse = new PagoResponse();
-        pagoResponse.setPagoRequest(pagoGuardado);
-        pagoResponse.setCodigoRespuesta(String.valueOf(respuestaIzipay.get("code")));
-        pagoResponse.setEstado(estado);
-        pagoResponse.setMensaje(String.valueOf(respuestaIzipay.get("message")));
-        pagoResponse.setFechaRespuesta(String.valueOf(respuestaIzipay.get("dateTime")));
-
-        return pagoResponseRepository.save(pagoResponse);
-    }
-
-    public PagoRechazo registrarRechazo(PagoRechazo pagoRechazo) {
-        return pagoRechazoRepository.save(pagoRechazo);
-    }
-}
->>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66
