@@ -1,0 +1,35 @@
+# =====================================================
+# ARCHIVO DE CONFIGURACION EXTERNO - ms-pagos
+# Este archivo va FUERA del WAR en el servidor
+# El administrador completa los datos de conexion
+# =====================================================
+
+spring:
+  application:
+    name: ms-pagos
+  datasource:
+    url: jdbc:mysql://<IP_SERVIDOR>:3306/db_pagos?useSSL=false&serverTimezone=America/Lima&allowPublicKeyRetrieval=true
+    username: <USUARIO_BD>
+    password: <PASSWORD_BD>
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+ms:
+  caja:
+    url: http://<IP_SERVIDOR>:<PUERTO_CAJA>

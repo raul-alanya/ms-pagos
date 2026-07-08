@@ -1,0 +1,17 @@
+# =====================================================
+# ARCHIVO DE CONFIGURACION EXTERNO - ms-pagos
+# Este archivo NO va dentro del WAR
+# El administrador del servidor debe completar
+# los datos de conexion y ubicarlo en el servidor
+# =====================================================
+
+# Configuracion de Base de Datos
+DB_URL: jdbc:mysql://<IP_SERVIDOR>:3306/db_pagos?useSSL=false&serverTimezone=America/Lima&allowPublicKeyRetrieval=true
+DB_USERNAME: <USUARIO_BD>
+DB_PASSWORD: <PASSWORD_BD>
+
+# URL del microservicio de caja
+CAJA_URL: http://<IP_SERVIDOR>:<PUERTO_CAJA>
+
+# Puerto del servidor
+SERVER_PORT: 8080
