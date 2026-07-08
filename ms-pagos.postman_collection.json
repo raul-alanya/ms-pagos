@@ -220,7 +220,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"cardnumber\": \"4111111111111111\",\n    \"cardholdername\": \"Juan Perez\",\n    \"cvv\": \"123\",\n    \"cardexpiry\": \"12/26\",\n    \"totalamount\": 100.00,\n    \"reference\": \"ORD-001\",\n    \"email\": \"juan@gmail.com\",\n    \"phone\": \"987654321\",\n    \"clientip\": \"192.168.1.1\",\n    \"clientcountry\": \"PE\",\n    \"clienturl\": \"https://mitienda.com\",\n    \"transactiontype\": \"Sale\",\n    \"currency\": \"PEN\"\n}",
+              "raw": "{\n    \"cardnumber\": \"4111111111111111\",\n    \"cardholdername\": \"Juan Perez\",\n    \"cvv\": \"123\",\n    \"cardexpiry\": \"12/26\",\n    \"totalamount\": 100.00,\n    \"reference\": \"ORD-001\",\n    \"email\": \"juan@gmail.com\",\n    \"phone\": \"987654321\",\n    \"clientip\": \"192.168.1.1\",\n    \"clientcountry\": \"PE\",\n    \"clienturl\": \"https://mitienda.com\",\n    \"transactiontype\": \"Sale\",\n    \"currency\": \"PEN\",\n    \"cajaId\": 1\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {

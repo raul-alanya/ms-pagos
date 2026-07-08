@@ -73,4 +73,9 @@ public class PagoRequestDTO {
     @Pattern(regexp = "^(PEN|USD|EUR)$", message = "La moneda debe ser PEN, USD o EUR")
     @Schema(description = "Moneda de la transacción", example = "PEN")
     private String currency;
+
+    @NotNull(message = "El ID de la caja aperturada es obligatorio")
+    @Positive(message = "El ID de caja debe ser un número positivo")
+    @Schema(description = "ID de la caja aperturada a la que se asocia este pago", example = "1")
+    private Long cajaId;
 }

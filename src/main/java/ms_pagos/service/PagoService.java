@@ -10,6 +10,7 @@ import ms_pagos.entity.PagoResponse;
 import ms_pagos.repository.PagoRechazoRepository;
 import ms_pagos.repository.PagoRequestRepository;
 import ms_pagos.repository.PagoResponseRepository;
+import ms_pagos.config.CajaClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,9 @@ public class PagoService {
     @Autowired
     private PagoRechazoRepository pagoRechazoRepository;
 
+    @Autowired
+    private CajaClient cajaClient;
+
     // ─── PAGO REQUEST ────────────────────────────────────────────────────────
 
     // Registrar datos de envío de pago online
@@ -49,6 +53,8 @@ public class PagoService {
         pago.setClienturl(dto.getClienturl());
         pago.setTransactiontype(dto.getTransactiontype() != null ? dto.getTransactiontype() : "Sale");
         pago.setCurrency(dto.getCurrency() != null ? dto.getCurrency() : "PEN");
+        pago.setCajaId(dto.getCajaId());
+        pago.setEstado("PENDIENTE");
         return pagoRequestRepository.save(pago);
     }
 
@@ -100,6 +106,27 @@ public class PagoService {
         response.setPagoRequestId(dto.getPagoRequestId());
 
         PagoResponse saved = pagoResponseRepository.save(response);
+
+        // Si el pago fue APROBADO, actualizar monto en la caja aperturada
+        if ("APROBADO".equals(saved.getEstado()) && pagoOriginal.getCajaId() != null) {
+            boolean cajaActualizada = cajaClient.agregarMontoCaja(
+                    pagoOriginal.getCajaId(),
+                    pagoOriginal.getTotalamount(),
+                    pagoOriginal.getId()
+            );
+            // Actualizar estado del pago a APROBADO
+            pagoOriginal.setEstado("APROBADO");
+            pagoRequestRepository.save(pagoOriginal);
+
+            if (cajaActualizada) {
+                System.out.println("Caja " + pagoOriginal.getCajaId() +
+                        " actualizada con monto S/" + pagoOriginal.getTotalamount());
+            }
+        } else if ("RECHAZADO".equals(saved.getEstado())) {
+            // Si fue rechazado, actualizar estado del pago
+            pagoOriginal.setEstado("RECHAZADO");
+            pagoRequestRepository.save(pagoOriginal);
+        }
 
         // Devuelve solo lo importante con la referencia de la orden
         PagoResponseResultDTO result = new PagoResponseResultDTO();

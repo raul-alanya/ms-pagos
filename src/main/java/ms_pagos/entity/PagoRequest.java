@@ -54,4 +54,12 @@ public class PagoRequest {
 
     @Column(name = "currency", length = 255)
     private String currency;
+
+    // ID de la caja aperturada a la que pertenece este pago
+    @Column(name = "caja_id")
+    private Long cajaId;
+
+    // Estado del pago: PENDIENTE, APROBADO, RECHAZADO
+    @Column(name = "estado", length = 50)
+    private String estado;
 }
