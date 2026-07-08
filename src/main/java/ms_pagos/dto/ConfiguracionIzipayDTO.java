@@ -44,4 +44,7 @@ public class ConfiguracionIzipayDTO {
 
     @Schema(description = "Indica si la configuración está activa", example = "true")
     private Boolean activo;
+
+    @Schema(description = "ID de la empresa a la que pertenece esta configuración IZIPAY", example = "1")
+    private Long empresaId;
 }

@@ -42,4 +42,9 @@ public class ConfiguracionIzipay {
 
     @Column(name = "fecha_registro", length = 255)
     private String fechaRegistro;
+
+    // Relación con empresa — cada configuración IZIPAY pertenece a una empresa
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "empresa_id", referencedColumnName = "id")
+    private Empresa empresa;
 }

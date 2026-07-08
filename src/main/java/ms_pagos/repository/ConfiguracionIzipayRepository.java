@@ -4,9 +4,12 @@ import ms_pagos.entity.ConfiguracionIzipay;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ConfiguracionIzipayRepository extends JpaRepository<ConfiguracionIzipay, Long> {
     Optional<ConfiguracionIzipay> findFirstByActivoTrue();
+    List<ConfiguracionIzipay> findByEmpresaId(Long empresaId);
+    Optional<ConfiguracionIzipay> findFirstByEmpresaIdAndActivoTrue(Long empresaId);
 }

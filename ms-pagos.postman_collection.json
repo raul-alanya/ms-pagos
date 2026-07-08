@@ -2,11 +2,119 @@
   "info": {
     "_postman_id": "32db6b31-8a40-4baf-9b84-526b81eb0dea",
     "name": "ms-pagos",
-<<<<<<< HEAD
-    "description": "Colección completa del Microservicio de Pagos Online con IZIPAY. Incluye endpoints para configuración, generación de token, procesamiento de pagos, respuestas y rechazos.",
+    "description": "Colección completa del Microservicio de Pagos Online con IZIPAY. Incluye endpoints para empresas, configuración, generación de token, procesamiento de pagos, respuestas y rechazos.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
+    {
+      "name": "Empresas",
+      "item": [
+        {
+          "name": "Registrar Empresa",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"TiendaMas SAC\",\n    \"ruc\": \"20123456789\",\n    \"direccion\": \"Av. Javier Prado 1234, Lima\",\n    \"telefono\": \"987654321\",\n    \"email\": \"contacto@tiendamas.com\",\n    \"representanteLegal\": \"Carlos Mendoza\",\n    \"activo\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/empresas",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
+              "path": ["api", "empresas"]
+            },
+            "description": "Registra una empresa en el sistema. Cada empresa tendrá su propia configuración IZIPAY."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Empresas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/empresas",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
+              "path": ["api", "empresas"]
+            },
+            "description": "Retorna la lista de todas las empresas registradas."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Empresas Activas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/empresas/activas",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
+              "path": ["api", "empresas", "activas"]
+            },
+            "description": "Retorna solo las empresas activas."
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Empresa por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/empresas/1",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
+              "path": ["api", "empresas", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Empresa por RUC",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/empresas/ruc/20123456789",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
+              "path": ["api", "empresas", "ruc", "20123456789"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Empresa",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"TiendaMas SAC Actualizado\",\n    \"ruc\": \"20123456789\",\n    \"direccion\": \"Av. Larco 500, Miraflores\",\n    \"telefono\": \"987654321\",\n    \"email\": \"nuevo@tiendamas.com\",\n    \"representanteLegal\": \"Carlos Mendoza\",\n    \"activo\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/empresas/1",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
+              "path": ["api", "empresas", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Desactivar Empresa",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/empresas/1/desactivar",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
+              "path": ["api", "empresas", "1", "desactivar"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
     {
       "name": "Configuración IZIPAY",
       "item": [
@@ -14,22 +122,18 @@
           "name": "Registrar Configuración IZIPAY",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"merchantCode\": \"12345678\",\n    \"passwordIzipay\": \"testpassword_DEMOPRIVATEKEY123\",\n    \"publicKey\": \"testpublickey_DEMOPUBLICKEY456\",\n    \"hmacSha256\": \"testHmacSha256_DEMOHMAC789\",\n    \"urlPago\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment\",\n    \"urlToken\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken\",\n    \"moneda\": \"PEN\",\n    \"activo\": true\n}",
+              "raw": "{\n    \"merchantCode\": \"12345678\",\n    \"passwordIzipay\": \"testpassword_DEMOPRIVATEKEY123\",\n    \"publicKey\": \"testpublickey_DEMOPUBLICKEY456\",\n    \"hmacSha256\": \"testHmacSha256_DEMOHMAC789\",\n    \"urlPago\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment\",\n    \"urlToken\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken\",\n    \"moneda\": \"PEN\",\n    \"activo\": true,\n    \"empresaId\": 1\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "http://localhost:8080/api/configuracion",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "configuracion"]
             },
-            "description": "Registra los datos de configuración necesarios para conectarse con IZIPAY: merchant code, contraseña, llaves de seguridad y URLs."
+            "description": "Registra la configuración IZIPAY de una empresa. El campo empresaId asocia esta configuración a la empresa registrada."
           },
           "response": []
         },
@@ -40,12 +144,10 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/configuracion/1/token",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "configuracion", "1", "token"]
             },
-            "description": "Genera el token de comunicación Base64 (merchantCode:password) usando la configuración con ID 1. Este token se usa para autenticar llamadas a IZIPAY."
+            "description": "Genera el token de comunicación Base64 usando la configuración con ID especificado."
           },
           "response": []
         },
@@ -56,12 +158,9 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/configuracion/token/activo",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "configuracion", "token", "activo"]
-            },
-            "description": "Genera el token de comunicación usando la configuración IZIPAY que esté marcada como activa."
+            }
           },
           "response": []
         },
@@ -72,12 +171,9 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/configuracion",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "configuracion"]
-            },
-            "description": "Retorna la lista de todas las configuraciones IZIPAY registradas."
+            }
           },
           "response": []
         },
@@ -88,12 +184,9 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/configuracion/1",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "configuracion", "1"]
-            },
-            "description": "Retorna los datos de una configuración IZIPAY específica por su ID."
+            }
           },
           "response": []
         },
@@ -101,22 +194,17 @@
           "name": "Actualizar Configuración IZIPAY",
           "request": {
             "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"merchantCode\": \"12345678\",\n    \"passwordIzipay\": \"nuevopassword_ACTUALIZADO123\",\n    \"publicKey\": \"nuevapublickey_ACTUALIZADA456\",\n    \"hmacSha256\": \"nuevoHmac_ACTUALIZADO789\",\n    \"urlPago\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment\",\n    \"urlToken\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken\",\n    \"moneda\": \"PEN\",\n    \"activo\": true\n}",
+              "raw": "{\n    \"merchantCode\": \"12345678\",\n    \"passwordIzipay\": \"nuevopassword_ACTUALIZADO123\",\n    \"publicKey\": \"nuevapublickey_ACTUALIZADA456\",\n    \"hmacSha256\": \"nuevoHmac_ACTUALIZADO789\",\n    \"urlPago\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment\",\n    \"urlToken\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken\",\n    \"moneda\": \"PEN\",\n    \"activo\": true,\n    \"empresaId\": 1\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "http://localhost:8080/api/configuracion/1",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "configuracion", "1"]
-            },
-            "description": "Actualiza los datos de una configuración IZIPAY existente."
+            }
           },
           "response": []
         }
@@ -129,9 +217,7 @@
           "name": "Registrar Datos de Envío de Pago (Procesar)",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"cardnumber\": \"4111111111111111\",\n    \"cardholdername\": \"Juan Perez\",\n    \"cvv\": \"123\",\n    \"cardexpiry\": \"12/26\",\n    \"totalamount\": 100.00,\n    \"reference\": \"ORD-001\",\n    \"email\": \"juan@gmail.com\",\n    \"phone\": \"987654321\",\n    \"clientip\": \"192.168.1.1\",\n    \"clientcountry\": \"PE\",\n    \"clienturl\": \"https://mitienda.com\",\n    \"transactiontype\": \"Sale\",\n    \"currency\": \"PEN\"\n}",
@@ -139,12 +225,9 @@
             },
             "url": {
               "raw": "http://localhost:8080/api/pagos/procesar",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "pagos", "procesar"]
-            },
-            "description": "Registra los datos de envío de un pago online hacia IZIPAY: datos de tarjeta, monto, referencia y datos del cliente."
+            }
           },
           "response": []
         },
@@ -155,12 +238,9 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/pagos",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "pagos"]
-            },
-            "description": "Retorna la lista de todos los pagos online registrados."
+            }
           },
           "response": []
         },
@@ -171,12 +251,9 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/pagos/1",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "pagos", "1"]
-            },
-            "description": "Retorna los datos de un pago específico por su ID."
+            }
           },
           "response": []
         },
@@ -187,12 +264,9 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/pagos/referencia/ORD-001",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "pagos", "referencia", "ORD-001"]
-            },
-            "description": "Busca y retorna los pagos que coincidan con la referencia de orden indicada."
+            }
           },
           "response": []
         }
@@ -205,9 +279,7 @@
           "name": "Registrar Respuesta de Pago (Código de Operación)",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"pagoRequestId\": 1,\n    \"codigoRespuesta\": \"00\",\n    \"codigoTransaccion\": \"TXN-20260617-001\",\n    \"estado\": \"APROBADO\",\n    \"fechaRespuesta\": \"2026-06-17\",\n    \"mensaje\": \"Pago aprobado exitosamente\"\n}",
@@ -215,12 +287,9 @@
             },
             "url": {
               "raw": "http://localhost:8080/api/pagos/respuesta",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "pagos", "respuesta"]
-            },
-            "description": "Registra los datos de respuesta recibidos desde IZIPAY: código de operación, código de transacción y estado del pago."
+            }
           },
           "response": []
         },
@@ -231,12 +300,9 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/pagos/respuestas",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "pagos", "respuestas"]
-            },
-            "description": "Retorna la lista de todas las respuestas de pago registradas."
+            }
           },
           "response": []
         },
@@ -247,12 +313,9 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/pagos/1/respuesta",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "pagos", "1", "respuesta"]
-            },
-            "description": "Retorna la respuesta IZIPAY asociada al pago con el ID especificado."
+            }
           },
           "response": []
         }
@@ -265,9 +328,7 @@
           "name": "Registrar Rechazo de Pago",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"pagoRequestId\": 1,\n    \"codigoRechazo\": \"05\",\n    \"motivoRechazo\": \"Fondos insuficientes\",\n    \"fechaRechazo\": \"2026-06-17\",\n    \"estado\": \"RECHAZADO\"\n}",
@@ -275,12 +336,9 @@
             },
             "url": {
               "raw": "http://localhost:8080/api/pagos/rechazo",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "pagos", "rechazo"]
-            },
-            "description": "Registra el rechazo de un pago online con el código y motivo devuelto por IZIPAY."
+            }
           },
           "response": []
         },
@@ -291,12 +349,9 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/pagos/rechazos",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "pagos", "rechazos"]
-            },
-            "description": "Retorna la lista de todos los pagos rechazados registrados en el sistema."
+            }
           },
           "response": []
         },
@@ -307,12 +362,9 @@
             "header": [],
             "url": {
               "raw": "http://localhost:8080/api/pagos/1/rechazo",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8080",
+              "protocol": "http", "host": ["localhost"], "port": "8080",
               "path": ["api", "pagos", "1", "rechazo"]
-            },
-            "description": "Retorna el registro de rechazo asociado al pago con el ID especificado."
+            }
           },
           "response": []
         }
@@ -320,72 +372,3 @@
     }
   ]
 }
-=======
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "54937331",
-    "_collection_link": "https://go.postman.co/collection/54937331-32db6b31-8a40-4baf-9b84-526b81eb0dea?source=collection_link"
-  },
-  "item": [
-    {
-      "name": "Procesar Pago",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"cardnumber\": \"4111111111111111\",\r\n    \"cardholdername\": \"Juan Perez\",\r\n    \"cvv\": \"123\",\r\n    \"cardexpiry\": \"12/26\",\r\n    \"totalamount\": 100.00,\r\n    \"reference\": \"ORD-001\",\r\n    \"email\": \"juan@gmail.com\",\r\n    \"phone\": \"987654321\",\r\n    \"clientip\": \"192.168.1.1\",\r\n    \"clientcountry\": \"PE\",\r\n    \"clienturl\": \"https://mitienda.com\",\r\n    \"transactiontype\": \"Sale\",\r\n    \"currency\": \"PEN\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:8080/api/pagos/procesar",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8080",
-          "path": [
-            "api",
-            "pagos",
-            "procesar"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Registrar Rechazo",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"codigoRechazo\": \"05\",\r\n    \"motivoRechazo\": \"Fondos insuficientes\",\r\n    \"fechaRechazo\": \"2026-06-16\",\r\n    \"estado\": \"RECHAZADO\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:8080/api/pagos/rechazo",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8080",
-          "path": [
-            "api",
-            "pagos",
-            "rechazo"
-          ]
-        }
-      },
-      "response": []
-    }
-  ]
-}
->>>>>>> c47c6f3c7fd747f5cb3d9080e09f9db0fdad8b66
