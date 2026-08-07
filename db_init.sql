@@ -1,10 +1,12 @@
 -- =====================================================
--- SCRIPT SQL UNIFICADO - MICROSERVICIO MS-PAGOS
--- Base de datos: db_pagos
+-- SCRIPT SQL - MICROSERVICIO MS-PAGOS
+-- Base de datos: db-pagos-online (ya existe en el servidor)
+-- Ejecutar conectado a la BD: db-pagos-online
+-- Host: 192.171.100.23  Puerto: 9003
+-- Usuario: user-pagos-online
 -- =====================================================
 
-CREATE DATABASE IF NOT EXISTS db_pagos;
-USE db_pagos;
+USE `db-pagos-online`;
 
 -- Tabla de empresas
 CREATE TABLE IF NOT EXISTS empresa (

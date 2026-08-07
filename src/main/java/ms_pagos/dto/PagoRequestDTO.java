@@ -1,12 +1,12 @@
 package ms_pagos.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,9 +17,11 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Datos de envío para procesar un pago online")
 public class PagoRequestDTO {
 
+    // VAL-IZI-001: PAN debe ser exactamente 16 dígitos numéricos
     @NotBlank(message = "El número de tarjeta es obligatorio")
     @Size(min = 16, max = 16, message = "El número de tarjeta debe tener exactamente 16 dígitos")
-    @Schema(description = "Número de tarjeta de crédito/débito", example = "4111111111111111")
+    @Pattern(regexp = "\\d{16}", message = "El número de tarjeta debe contener solo dígitos numéricos (0-9)")
+    @Schema(description = "Número de tarjeta de crédito/débito (16 dígitos numéricos)", example = "4111111111111111")
     private String cardnumber;
 
     @NotBlank(message = "El nombre del titular es obligatorio")
@@ -34,6 +36,7 @@ public class PagoRequestDTO {
     @Schema(description = "Código de seguridad CVV", example = "123")
     private String cvv;
 
+    // VAL-IZI-002: formato validado aquí, vigencia validada en el service
     @NotBlank(message = "La fecha de expiración es obligatoria")
     @Pattern(regexp = "^(0[1-9]|1[0-2])/([0-9]{2})$", message = "La fecha de expiración debe tener formato MM/YY")
     @Schema(description = "Fecha de expiración de la tarjeta (MM/YY)", example = "12/26")
@@ -53,9 +56,9 @@ public class PagoRequestDTO {
     @Schema(description = "Correo electrónico del cliente", example = "juan@gmail.com")
     private String email;
 
-    @Schema(description = "Teléfono del cliente", example = "987654321")
     @Size(min = 9, max = 9, message = "El teléfono debe tener exactamente 9 dígitos")
     @Pattern(regexp = "\\d{9}", message = "El teléfono solo debe contener 9 dígitos numéricos")
+    @Schema(description = "Teléfono del cliente", example = "987654321")
     private String phone;
 
     @Schema(description = "IP del cliente", example = "192.168.1.1")

@@ -1,372 +1,530 @@
 {
   "info": {
-    "_postman_id": "32db6b31-8a40-4baf-9b84-526b81eb0dea",
-    "name": "ms-pagos",
-    "description": "Colección completa del Microservicio de Pagos Online con IZIPAY. Incluye endpoints para empresas, configuración, generación de token, procesamiento de pagos, respuestas y rechazos.",
+    "_postman_id": "ms-pagos-qa-v2",
+    "name": "ms-pagos (QA v2 - Corregido)",
+    "description": "Colección actualizada post-QA. Incluye paginación, PAN enmascarado, sin exposición de secretos, validaciones Luhn y fecha, y errores uniformes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    { "key": "baseUrl", "value": "http://10.234.105.176:8003", "type": "string" },
+    { "key": "empresaId", "value": "1", "type": "string" },
+    { "key": "configuracionId", "value": "1", "type": "string" },
+    { "key": "pagoId", "value": "1", "type": "string" }
+  ],
   "item": [
     {
-      "name": "Empresas",
+      "name": "1. Empresas",
       "item": [
         {
-          "name": "Registrar Empresa",
+          "name": "01 Registrar Empresa (válido)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"nombre\": \"TiendaMas SAC\",\n    \"ruc\": \"20123456789\",\n    \"direccion\": \"Av. Javier Prado 1234, Lima\",\n    \"telefono\": \"987654321\",\n    \"email\": \"contacto@tiendamas.com\",\n    \"representanteLegal\": \"Carlos Mendoza\",\n    \"activo\": true\n}",
+              "raw": "{\n  \"nombre\": \"TiendaMas SAC\",\n  \"ruc\": \"20123456789\",\n  \"direccion\": \"Av. Javier Prado 1234, Lima\",\n  \"telefono\": \"987654321\",\n  \"email\": \"contacto@tiendamas.com\",\n  \"representanteLegal\": \"Carlos Mendoza\",\n  \"activo\": true\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "http://localhost:8080/api/empresas",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "empresas"]
-            },
-            "description": "Registra una empresa en el sistema. Cada empresa tendrá su propia configuración IZIPAY."
-          },
-          "response": []
+            "url": { "raw": "{{baseUrl}}/api/empresas", "host": ["{{baseUrl}}"], "path": ["api","empresas"] }
+          }
         },
         {
-          "name": "Listar Empresas",
+          "name": "02 Registrar Empresa (body vacío → 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/empresas", "host": ["{{baseUrl}}"], "path": ["api","empresas"] }
+          }
+        },
+        {
+          "name": "03 Registrar Empresa (RUC duplicado → 409)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Otra Empresa\",\n  \"ruc\": \"20123456789\",\n  \"direccion\": \"Jr. Lima 100\",\n  \"telefono\": \"987654322\",\n  \"email\": \"otra@empresa.com\",\n  \"representanteLegal\": \"Ana Torres\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/empresas", "host": ["{{baseUrl}}"], "path": ["api","empresas"] }
+          }
+        },
+        {
+          "name": "04 Listar Empresas paginado (page=0, size=10)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8080/api/empresas",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "empresas"]
-            },
-            "description": "Retorna la lista de todas las empresas registradas."
-          },
-          "response": []
-        },
-        {
-          "name": "Listar Empresas Activas",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/empresas/activas",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "empresas", "activas"]
-            },
-            "description": "Retorna solo las empresas activas."
-          },
-          "response": []
-        },
-        {
-          "name": "Obtener Empresa por ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/empresas/1",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "empresas", "1"]
+              "raw": "{{baseUrl}}/api/empresas?page=0&size=10&sort=id&direction=asc",
+              "host": ["{{baseUrl}}"], "path": ["api","empresas"],
+              "query": [
+                { "key": "page", "value": "0" }, { "key": "size", "value": "10" },
+                { "key": "sort", "value": "id" }, { "key": "direction", "value": "asc" }
+              ]
             }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Buscar Empresa por RUC",
+          "name": "05 Listar Empresas Activas paginado",
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "GET", "header": [],
             "url": {
-              "raw": "http://localhost:8080/api/empresas/ruc/20123456789",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "empresas", "ruc", "20123456789"]
+              "raw": "{{baseUrl}}/api/empresas/activas?page=0&size=10",
+              "host": ["{{baseUrl}}"], "path": ["api","empresas","activas"],
+              "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }]
             }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Actualizar Empresa",
+          "name": "06 Obtener Empresa por ID",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/empresas/{{empresaId}}", "host": ["{{baseUrl}}"], "path": ["api","empresas","{{empresaId}}"] }
+          }
+        },
+        {
+          "name": "07 Obtener Empresa por ID (inexistente → 404)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/empresas/999999", "host": ["{{baseUrl}}"], "path": ["api","empresas","999999"] }
+          }
+        },
+        {
+          "name": "08 Obtener Empresa por ID (alfabético → 400)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/empresas/abc", "host": ["{{baseUrl}}"], "path": ["api","empresas","abc"] }
+          }
+        },
+        {
+          "name": "09 Buscar Empresa por RUC",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/empresas/ruc/20123456789", "host": ["{{baseUrl}}"], "path": ["api","empresas","ruc","20123456789"] }
+          }
+        },
+        {
+          "name": "10 Actualizar Empresa",
           "request": {
             "method": "PUT",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"nombre\": \"TiendaMas SAC Actualizado\",\n    \"ruc\": \"20123456789\",\n    \"direccion\": \"Av. Larco 500, Miraflores\",\n    \"telefono\": \"987654321\",\n    \"email\": \"nuevo@tiendamas.com\",\n    \"representanteLegal\": \"Carlos Mendoza\",\n    \"activo\": true\n}",
+              "raw": "{\n  \"nombre\": \"TiendaMas SAC Actualizado\",\n  \"ruc\": \"20123456789\",\n  \"direccion\": \"Av. Larco 500, Miraflores\",\n  \"telefono\": \"987654321\",\n  \"email\": \"nuevo@tiendamas.com\",\n  \"representanteLegal\": \"Carlos Mendoza\",\n  \"activo\": true\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "http://localhost:8080/api/empresas/1",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "empresas", "1"]
-            }
-          },
-          "response": []
+            "url": { "raw": "{{baseUrl}}/api/empresas/{{empresaId}}", "host": ["{{baseUrl}}"], "path": ["api","empresas","{{empresaId}}"] }
+          }
         },
         {
-          "name": "Desactivar Empresa",
-          "request": {
-            "method": "PATCH",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/empresas/1/desactivar",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "empresas", "1", "desactivar"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Configuración IZIPAY",
-      "item": [
-        {
-          "name": "Registrar Configuración IZIPAY",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"merchantCode\": \"12345678\",\n    \"passwordIzipay\": \"testpassword_DEMOPRIVATEKEY123\",\n    \"publicKey\": \"testpublickey_DEMOPUBLICKEY456\",\n    \"hmacSha256\": \"testHmacSha256_DEMOHMAC789\",\n    \"urlPago\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment\",\n    \"urlToken\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken\",\n    \"moneda\": \"PEN\",\n    \"activo\": true,\n    \"empresaId\": 1\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "http://localhost:8080/api/configuracion",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "configuracion"]
-            },
-            "description": "Registra la configuración IZIPAY de una empresa. El campo empresaId asocia esta configuración a la empresa registrada."
-          },
-          "response": []
-        },
-        {
-          "name": "Generar Token IZIPAY (por ID)",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/configuracion/1/token",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "configuracion", "1", "token"]
-            },
-            "description": "Genera el token de comunicación Base64 usando la configuración con ID especificado."
-          },
-          "response": []
-        },
-        {
-          "name": "Generar Token IZIPAY (configuración activa)",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/configuracion/token/activo",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "configuracion", "token", "activo"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Listar Configuraciones IZIPAY",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/configuracion",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "configuracion"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Obtener Configuración por ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/configuracion/1",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "configuracion", "1"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Actualizar Configuración IZIPAY",
+          "name": "11 Actualizar Empresa (inexistente → 404)",
           "request": {
             "method": "PUT",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"merchantCode\": \"12345678\",\n    \"passwordIzipay\": \"nuevopassword_ACTUALIZADO123\",\n    \"publicKey\": \"nuevapublickey_ACTUALIZADA456\",\n    \"hmacSha256\": \"nuevoHmac_ACTUALIZADO789\",\n    \"urlPago\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment\",\n    \"urlToken\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken\",\n    \"moneda\": \"PEN\",\n    \"activo\": true,\n    \"empresaId\": 1\n}",
+              "raw": "{\n  \"nombre\": \"NoExiste\",\n  \"ruc\": \"20999999999\",\n  \"email\": \"no@existe.com\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "http://localhost:8080/api/configuracion/1",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "configuracion", "1"]
-            }
-          },
-          "response": []
+            "url": { "raw": "{{baseUrl}}/api/empresas/999999", "host": ["{{baseUrl}}"], "path": ["api","empresas","999999"] }
+          }
+        },
+        {
+          "name": "12 Desactivar Empresa",
+          "request": {
+            "method": "PATCH", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/empresas/{{empresaId}}/desactivar", "host": ["{{baseUrl}}"], "path": ["api","empresas","{{empresaId}}","desactivar"] }
+          }
         }
       ]
     },
     {
-      "name": "Pagos Online",
+      "name": "2. Configuración IZIPAY",
       "item": [
         {
-          "name": "Registrar Datos de Envío de Pago (Procesar)",
+          "name": "01 Registrar Configuración (válido, HTTPS)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"cardnumber\": \"4111111111111111\",\n    \"cardholdername\": \"Juan Perez\",\n    \"cvv\": \"123\",\n    \"cardexpiry\": \"12/26\",\n    \"totalamount\": 100.00,\n    \"reference\": \"ORD-001\",\n    \"email\": \"juan@gmail.com\",\n    \"phone\": \"987654321\",\n    \"clientip\": \"192.168.1.1\",\n    \"clientcountry\": \"PE\",\n    \"clienturl\": \"https://mitienda.com\",\n    \"transactiontype\": \"Sale\",\n    \"currency\": \"PEN\",\n    \"cajaId\": 1\n}",
+              "raw": "{\n  \"merchantCode\": \"12345678\",\n  \"passwordIzipay\": \"testpassword_DEMOPRIVATEKEY123\",\n  \"publicKey\": \"testpublickey_DEMOPUBLICKEY456\",\n  \"hmacSha256\": \"testHmacSha256_DEMOHMAC789\",\n  \"urlPago\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment\",\n  \"urlToken\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken\",\n  \"moneda\": \"PEN\",\n  \"activo\": true,\n  \"empresaId\": 1\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "http://localhost:8080/api/pagos/procesar",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "pagos", "procesar"]
-            }
-          },
-          "response": []
+            "url": { "raw": "{{baseUrl}}/api/configuracion", "host": ["{{baseUrl}}"], "path": ["api","configuracion"] },
+            "description": "SEC-IZI-006: solo HTTPS. password/hmac NO aparecen en la respuesta (SEC-IZI-002)."
+          }
         },
         {
-          "name": "Listar Todos los Pagos",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/pagos",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "pagos"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Obtener Pago por ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/pagos/1",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "pagos", "1"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Buscar Pagos por Referencia",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/pagos/referencia/ORD-001",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "pagos", "referencia", "ORD-001"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Respuestas de Pago",
-      "item": [
-        {
-          "name": "Registrar Respuesta de Pago (Código de Operación)",
+          "name": "02 Registrar Configuración (URL HTTP → 400)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"pagoRequestId\": 1,\n    \"codigoRespuesta\": \"00\",\n    \"codigoTransaccion\": \"TXN-20260617-001\",\n    \"estado\": \"APROBADO\",\n    \"fechaRespuesta\": \"2026-06-17\",\n    \"mensaje\": \"Pago aprobado exitosamente\"\n}",
+              "raw": "{\n  \"merchantCode\": \"12345678\",\n  \"passwordIzipay\": \"testpassword123\",\n  \"urlPago\": \"http://api.inseguro.com/pago\",\n  \"empresaId\": 1\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "http://localhost:8080/api/pagos/respuesta",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "pagos", "respuesta"]
-            }
-          },
-          "response": []
+            "url": { "raw": "{{baseUrl}}/api/configuracion", "host": ["{{baseUrl}}"], "path": ["api","configuracion"] }
+          }
         },
         {
-          "name": "Listar Todas las Respuestas de Pago",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/pagos/respuestas",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "pagos", "respuestas"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Obtener Respuesta por ID de Pago",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/pagos/1/respuesta",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "pagos", "1", "respuesta"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Rechazos de Pago",
-      "item": [
-        {
-          "name": "Registrar Rechazo de Pago",
+          "name": "03 Registrar Configuración (empresa inexistente → 400)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"pagoRequestId\": 1,\n    \"codigoRechazo\": \"05\",\n    \"motivoRechazo\": \"Fondos insuficientes\",\n    \"fechaRechazo\": \"2026-06-17\",\n    \"estado\": \"RECHAZADO\"\n}",
+              "raw": "{\n  \"merchantCode\": \"12345678\",\n  \"passwordIzipay\": \"testpassword123\",\n  \"empresaId\": 999999\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "http://localhost:8080/api/pagos/rechazo",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "pagos", "rechazo"]
-            }
-          },
-          "response": []
+            "url": { "raw": "{{baseUrl}}/api/configuracion", "host": ["{{baseUrl}}"], "path": ["api","configuracion"] }
+          }
         },
         {
-          "name": "Listar Todos los Rechazos de Pago",
+          "name": "04 Verificar Token por ID (activo)",
           "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/api/pagos/rechazos",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "pagos", "rechazos"]
-            }
-          },
-          "response": []
+            "method": "POST", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/configuracion/{{configuracionId}}/token", "host": ["{{baseUrl}}"], "path": ["api","configuracion","{{configuracionId}}","token"] },
+            "description": "SEC-IZI-004: ya NO devuelve token Base64 con credenciales. Solo verifica que la config esté activa."
+          }
         },
         {
-          "name": "Obtener Rechazo por ID de Pago",
+          "name": "05 Verificar Token (configuración activa)",
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/configuracion/token/activo", "host": ["{{baseUrl}}"], "path": ["api","configuracion","token","activo"] }
+          }
+        },
+        {
+          "name": "06 Listar Configuraciones paginado",
+          "request": {
+            "method": "GET", "header": [],
             "url": {
-              "raw": "http://localhost:8080/api/pagos/1/rechazo",
-              "protocol": "http", "host": ["localhost"], "port": "8080",
-              "path": ["api", "pagos", "1", "rechazo"]
+              "raw": "{{baseUrl}}/api/configuracion?page=0&size=10",
+              "host": ["{{baseUrl}}"], "path": ["api","configuracion"],
+              "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }]
+            },
+            "description": "SEC-IZI-002: password, publicKey y hmacSha256 NO aparecen en la respuesta."
+          }
+        },
+        {
+          "name": "07 Obtener Configuración por ID",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/configuracion/{{configuracionId}}", "host": ["{{baseUrl}}"], "path": ["api","configuracion","{{configuracionId}}"] }
+          }
+        },
+        {
+          "name": "08 Obtener Configuración (inexistente → 404)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/configuracion/999999", "host": ["{{baseUrl}}"], "path": ["api","configuracion","999999"] }
+          }
+        },
+        {
+          "name": "09 Actualizar Configuración",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantCode\": \"12345678\",\n  \"passwordIzipay\": \"nuevopassword_ACTUALIZADO123\",\n  \"publicKey\": \"nuevapublickey_ACTUALIZADA\",\n  \"hmacSha256\": \"nuevoHmac_ACTUALIZADO\",\n  \"urlPago\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment\",\n  \"urlToken\": \"https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken\",\n  \"moneda\": \"PEN\",\n  \"activo\": true,\n  \"empresaId\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/configuracion/{{configuracionId}}", "host": ["{{baseUrl}}"], "path": ["api","configuracion","{{configuracionId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Pagos Online",
+      "item": [
+        {
+          "name": "01 Procesar Pago (válido, Luhn OK, vigente)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardnumber\": \"4111111111111111\",\n  \"cardholdername\": \"Juan Perez\",\n  \"cvv\": \"123\",\n  \"cardexpiry\": \"12/27\",\n  \"totalamount\": 100.00,\n  \"reference\": \"ORD-001\",\n  \"email\": \"juan@gmail.com\",\n  \"phone\": \"987654321\",\n  \"clientip\": \"192.168.1.1\",\n  \"clientcountry\": \"PE\",\n  \"clienturl\": \"https://mitienda.com\",\n  \"transactiontype\": \"Sale\",\n  \"currency\": \"PEN\",\n  \"cajaId\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pagos/procesar", "host": ["{{baseUrl}}"], "path": ["api","pagos","procesar"] },
+            "description": "Respuesta devuelve PAN enmascarado (****-****-****-1111). CVV nunca aparece."
+          }
+        },
+        {
+          "name": "02 Procesar Pago (body vacío → 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/pagos/procesar", "host": ["{{baseUrl}}"], "path": ["api","pagos","procesar"] }
+          }
+        },
+        {
+          "name": "03 Procesar Pago (PAN alfabético → 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardnumber\": \"AAAAAAAAAAAAAAAA\",\n  \"cardholdername\": \"Juan Perez\",\n  \"cvv\": \"123\",\n  \"cardexpiry\": \"12/27\",\n  \"totalamount\": 100.00,\n  \"reference\": \"ORD-002\",\n  \"email\": \"juan@gmail.com\",\n  \"cajaId\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pagos/procesar", "host": ["{{baseUrl}}"], "path": ["api","pagos","procesar"] },
+            "description": "VAL-IZI-001: PAN no numérico rechazado."
+          }
+        },
+        {
+          "name": "04 Procesar Pago (PAN Luhn inválido → 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardnumber\": \"1234567890123456\",\n  \"cardholdername\": \"Juan Perez\",\n  \"cvv\": \"123\",\n  \"cardexpiry\": \"12/27\",\n  \"totalamount\": 100.00,\n  \"reference\": \"ORD-003\",\n  \"email\": \"juan@gmail.com\",\n  \"cajaId\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pagos/procesar", "host": ["{{baseUrl}}"], "path": ["api","pagos","procesar"] },
+            "description": "VAL-IZI-001: falla verificación Luhn."
+          }
+        },
+        {
+          "name": "05 Procesar Pago (tarjeta vencida → 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardnumber\": \"4111111111111111\",\n  \"cardholdername\": \"Juan Perez\",\n  \"cvv\": \"123\",\n  \"cardexpiry\": \"01/20\",\n  \"totalamount\": 100.00,\n  \"reference\": \"ORD-004\",\n  \"email\": \"juan@gmail.com\",\n  \"cajaId\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pagos/procesar", "host": ["{{baseUrl}}"], "path": ["api","pagos","procesar"] },
+            "description": "VAL-IZI-002: tarjeta expirada en 01/20 rechazada."
+          }
+        },
+        {
+          "name": "06 Procesar Pago (referencia duplicada → 409)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardnumber\": \"4111111111111111\",\n  \"cardholdername\": \"Juan Perez\",\n  \"cvv\": \"123\",\n  \"cardexpiry\": \"12/27\",\n  \"totalamount\": 50.00,\n  \"reference\": \"ORD-001\",\n  \"email\": \"juan@gmail.com\",\n  \"cajaId\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pagos/procesar", "host": ["{{baseUrl}}"], "path": ["api","pagos","procesar"] },
+            "description": "BUS-IZI-002: referencia ORD-001 ya existe, debe devolver 409."
+          }
+        },
+        {
+          "name": "07 Procesar Pago (monto negativo → 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardnumber\": \"4111111111111111\",\n  \"cardholdername\": \"Juan Perez\",\n  \"cvv\": \"123\",\n  \"cardexpiry\": \"12/27\",\n  \"totalamount\": -50.00,\n  \"reference\": \"ORD-NEG\",\n  \"email\": \"juan@gmail.com\",\n  \"cajaId\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pagos/procesar", "host": ["{{baseUrl}}"], "path": ["api","pagos","procesar"] }
+          }
+        },
+        {
+          "name": "08 Listar Pagos paginado (page=0, size=10)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos?page=0&size=10&sort=id&direction=desc",
+              "host": ["{{baseUrl}}"], "path": ["api","pagos"],
+              "query": [
+                { "key": "page", "value": "0" }, { "key": "size", "value": "10" },
+                { "key": "sort", "value": "id" }, { "key": "direction", "value": "desc" }
+              ]
+            },
+            "description": "PERF-IZI-001: paginación real. SEC-IZI-003: PAN enmascarado, sin CVV."
+          }
+        },
+        {
+          "name": "09 Listar Pagos (size excesivo → limitado a 50)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos?page=0&size=1000000",
+              "host": ["{{baseUrl}}"], "path": ["api","pagos"],
+              "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "1000000" }]
+            },
+            "description": "PERF-IZI-001: size excesivo es limitado internamente a 50."
+          }
+        },
+        {
+          "name": "10 Obtener Pago por ID",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pagos/{{pagoId}}", "host": ["{{baseUrl}}"], "path": ["api","pagos","{{pagoId}}"] }
+          }
+        },
+        {
+          "name": "11 Obtener Pago (ID inexistente → 404)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pagos/999999", "host": ["{{baseUrl}}"], "path": ["api","pagos","999999"] }
+          }
+        },
+        {
+          "name": "12 Obtener Pago (ID alfabético → 400)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pagos/abc", "host": ["{{baseUrl}}"], "path": ["api","pagos","abc"] },
+            "description": "API-IZI-001: error uniforme success=false."
+          }
+        },
+        {
+          "name": "13 Buscar Pagos por Referencia",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pagos/referencia/ORD-001", "host": ["{{baseUrl}}"], "path": ["api","pagos","referencia","ORD-001"] }
+          }
+        },
+        {
+          "name": "14 Buscar Pagos (referencia inexistente → lista vacía)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pagos/referencia/NO-EXISTE-9999", "host": ["{{baseUrl}}"], "path": ["api","pagos","referencia","NO-EXISTE-9999"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Respuestas de Pago",
+      "item": [
+        {
+          "name": "01 Registrar Respuesta (APROBADO)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pagoRequestId\": 1,\n  \"codigoRespuesta\": \"00\",\n  \"codigoTransaccion\": \"TXN-20270101-0001\",\n  \"estado\": \"APROBADO\",\n  \"fechaRespuesta\": \"2027-01-01\",\n  \"mensaje\": \"Pago aprobado exitosamente\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pagos/respuesta", "host": ["{{baseUrl}}"], "path": ["api","pagos","respuesta"] }
+          }
+        },
+        {
+          "name": "02 Registrar Respuesta (body vacío → 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/pagos/respuesta", "host": ["{{baseUrl}}"], "path": ["api","pagos","respuesta"] }
+          }
+        },
+        {
+          "name": "03 Registrar Respuesta (pago inexistente → 404)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pagoRequestId\": 999999,\n  \"codigoRespuesta\": \"00\",\n  \"estado\": \"APROBADO\",\n  \"mensaje\": \"Test\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pagos/respuesta", "host": ["{{baseUrl}}"], "path": ["api","pagos","respuesta"] }
+          }
+        },
+        {
+          "name": "04 Listar Respuestas paginado",
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/respuestas?page=0&size=10",
+              "host": ["{{baseUrl}}"], "path": ["api","pagos","respuestas"],
+              "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "05 Obtener Respuesta por ID de Pago",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pagos/{{pagoId}}/respuesta", "host": ["{{baseUrl}}"], "path": ["api","pagos","{{pagoId}}","respuesta"] }
+          }
+        },
+        {
+          "name": "06 Obtener Respuesta (pago sin respuesta → 404)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pagos/999999/respuesta", "host": ["{{baseUrl}}"], "path": ["api","pagos","999999","respuesta"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Rechazos de Pago",
+      "item": [
+        {
+          "name": "01 Registrar Rechazo (válido)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pagoRequestId\": 1,\n  \"codigoRechazo\": \"05\",\n  \"motivoRechazo\": \"Fondos insuficientes\",\n  \"fechaRechazo\": \"2027-01-01\",\n  \"estado\": \"RECHAZADO\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pagos/rechazo", "host": ["{{baseUrl}}"], "path": ["api","pagos","rechazo"] }
+          }
+        },
+        {
+          "name": "02 Registrar Rechazo (body vacío → 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/pagos/rechazo", "host": ["{{baseUrl}}"], "path": ["api","pagos","rechazo"] }
+          }
+        },
+        {
+          "name": "03 Registrar Rechazo (pago inexistente → 404)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pagoRequestId\": 999999,\n  \"codigoRechazo\": \"05\",\n  \"motivoRechazo\": \"No existe\",\n  \"estado\": \"RECHAZADO\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pagos/rechazo", "host": ["{{baseUrl}}"], "path": ["api","pagos","rechazo"] }
+          }
+        },
+        {
+          "name": "04 Listar Rechazos paginado",
+          "request": {
+            "method": "GET", "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/rechazos?page=0&size=10",
+              "host": ["{{baseUrl}}"], "path": ["api","pagos","rechazos"],
+              "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }]
+            }
+          }
+        },
+        {
+          "name": "05 Obtener Rechazo por ID de Pago",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pagos/{{pagoId}}/rechazo", "host": ["{{baseUrl}}"], "path": ["api","pagos","{{pagoId}}","rechazo"] }
+          }
+        },
+        {
+          "name": "06 Obtener Rechazo (pago sin rechazo → 404)",
+          "request": {
+            "method": "GET", "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pagos/999999/rechazo", "host": ["{{baseUrl}}"], "path": ["api","pagos","999999","rechazo"] }
+          }
         }
       ]
     }

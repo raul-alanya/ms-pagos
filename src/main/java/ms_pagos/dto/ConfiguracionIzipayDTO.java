@@ -30,12 +30,14 @@ public class ConfiguracionIzipayDTO {
     @Schema(description = "Clave HMAC SHA256 para validación de firma", example = "testHmacSha256_DEMOHMAC789")
     private String hmacSha256;
 
-    @Pattern(regexp = "^https?://.*", message = "La URL de pago debe comenzar con http:// o https://")
-    @Schema(description = "URL del endpoint de pago IZIPAY", example = "https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment")
+    // SEC-IZI-006: solo HTTPS permitido para URLs de pago
+    @Pattern(regexp = "^https://.*", message = "La URL de pago debe comenzar con https:// (HTTP no está permitido)")
+    @Schema(description = "URL del endpoint de pago IZIPAY (debe ser HTTPS)", example = "https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment")
     private String urlPago;
 
-    @Pattern(regexp = "^https?://.*", message = "La URL de token debe comenzar con http:// o https://")
-    @Schema(description = "URL del endpoint de generación de token IZIPAY", example = "https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken")
+    // SEC-IZI-006: solo HTTPS permitido para URLs de token
+    @Pattern(regexp = "^https://.*", message = "La URL de token debe comenzar con https:// (HTTP no está permitido)")
+    @Schema(description = "URL del endpoint de generación de token IZIPAY (debe ser HTTPS)", example = "https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken")
     private String urlToken;
 
     @Pattern(regexp = "^(PEN|USD|EUR)$", message = "La moneda debe ser PEN, USD o EUR")

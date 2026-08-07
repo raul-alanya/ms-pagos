@@ -6,7 +6,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "pago_request")
+// BUS-IZI-002: referencia única por transacción para evitar cargos duplicados
+@Table(name = "pago_request", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_pago_request_reference", columnNames = {"reference"})
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,6 +25,7 @@ public class PagoRequest {
     @Column(name = "cardholdername", length = 255)
     private String cardholdername;
 
+    // SEC-IZI-003: CVV almacenado internamente pero nunca expuesto en responses (via PagoSafeDTO)
     @Column(name = "cvv", length = 255)
     private String cvv;
 
@@ -55,11 +59,9 @@ public class PagoRequest {
     @Column(name = "currency", length = 255)
     private String currency;
 
-    // ID de la caja aperturada a la que pertenece este pago
     @Column(name = "caja_id")
     private Long cajaId;
 
-    // Estado del pago: PENDIENTE, APROBADO, RECHAZADO
     @Column(name = "estado", length = 50)
     private String estado;
 }

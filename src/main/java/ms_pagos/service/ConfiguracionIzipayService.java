@@ -7,11 +7,13 @@ import ms_pagos.entity.Empresa;
 import ms_pagos.repository.ConfiguracionIzipayRepository;
 import ms_pagos.repository.EmpresaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,7 +26,17 @@ public class ConfiguracionIzipayService {
     @Autowired
     private EmpresaRepository empresaRepository;
 
-    // Registrar configuración IZIPAY asociada a una empresa
+    /** BUS-IZI-004: garantiza una sola config activa por empresa. */
+    private void desactivarConfiguracionesActivas(Long empresaId) {
+        configuracionRepository.findByEmpresaId(empresaId).stream()
+                .filter(c -> Boolean.TRUE.equals(c.getActivo()))
+                .forEach(c -> {
+                    c.setActivo(false);
+                    configuracionRepository.save(c);
+                });
+    }
+
+    @Transactional
     public ConfiguracionIzipay registrarConfiguracion(ConfiguracionIzipayDTO dto) {
         ConfiguracionIzipay config = new ConfiguracionIzipay();
         config.setMerchantCode(dto.getMerchantCode());
@@ -36,75 +48,70 @@ public class ConfiguracionIzipayService {
         config.setUrlToken(dto.getUrlToken() != null ? dto.getUrlToken()
                 : "https://api.micuentaweb.pe/api-payment/V4/Charge/CreateToken");
         config.setMoneda(dto.getMoneda() != null ? dto.getMoneda() : "PEN");
-        config.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
+
+        boolean seraActiva = dto.getActivo() == null || dto.getActivo();
+        config.setActivo(seraActiva);
         config.setFechaRegistro(LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
-        // Asociar a empresa si viene empresaId
         if (dto.getEmpresaId() != null) {
             Empresa empresa = empresaRepository.findById(dto.getEmpresaId())
-                    .orElseThrow(() -> new RuntimeException(
+                    .orElseThrow(() -> new IllegalArgumentException(
                             "Empresa no encontrada con ID: " + dto.getEmpresaId()));
             config.setEmpresa(empresa);
+            if (seraActiva) {
+                desactivarConfiguracionesActivas(dto.getEmpresaId());
+            }
         }
 
         return configuracionRepository.save(config);
     }
 
-    // Generar token de comunicación con IZIPAY (Basic Auth base64)
+    /** SEC-IZI-004/005 + BUS-IZI-001: verifica activa, NO expone credenciales. */
     public TokenResponseDTO generarToken(Long id) {
         ConfiguracionIzipay config = configuracionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException(
                         "Configuración IZIPAY no encontrada con ID: " + id));
 
-        String credenciales = config.getMerchantCode() + ":" + config.getPasswordIzipay();
-        String token = Base64.getEncoder().encodeToString(credenciales.getBytes());
+        if (!Boolean.TRUE.equals(config.getActivo())) {
+            throw new IllegalStateException(
+                    "La configuración ID " + id + " está inactiva y no puede usarse para pagos.");
+        }
 
         TokenResponseDTO response = new TokenResponseDTO();
-        response.setToken(token);
         response.setMerchantCode(config.getMerchantCode());
         response.setUrlPago(config.getUrlPago());
-        response.setMensaje("Token de comunicación generado exitosamente");
+        response.setMensaje("Configuración activa verificada correctamente");
         response.setEstado("SUCCESS");
-
         return response;
     }
 
-    // Generar token usando la configuración activa
     public TokenResponseDTO generarTokenActivo() {
         ConfiguracionIzipay config = configuracionRepository.findFirstByActivoTrue()
-                .orElseThrow(() -> new RuntimeException(
-                        "No existe configuración IZIPAY activa"));
-
-        String credenciales = config.getMerchantCode() + ":" + config.getPasswordIzipay();
-        String token = Base64.getEncoder().encodeToString(credenciales.getBytes());
+                .orElseThrow(() -> new RuntimeException("No existe configuración IZIPAY activa"));
 
         TokenResponseDTO response = new TokenResponseDTO();
-        response.setToken(token);
         response.setMerchantCode(config.getMerchantCode());
         response.setUrlPago(config.getUrlPago());
-        response.setMensaje("Token de comunicación generado exitosamente");
+        response.setMensaje("Configuración activa verificada correctamente");
         response.setEstado("SUCCESS");
-
         return response;
     }
 
-    // Listar todas las configuraciones
-    public List<ConfiguracionIzipay> listarConfiguraciones() {
-        return configuracionRepository.findAll();
+    // PERF-IZI-001: listado paginado
+    public Page<ConfiguracionIzipay> listarConfiguraciones(Pageable pageable) {
+        return configuracionRepository.findAll(pageable);
     }
 
-    // Obtener configuración por ID
     public Optional<ConfiguracionIzipay> obtenerPorId(Long id) {
         return configuracionRepository.findById(id);
     }
 
-    // Obtener configuraciones por empresa
     public List<ConfiguracionIzipay> obtenerPorEmpresa(Long empresaId) {
         return configuracionRepository.findByEmpresaId(empresaId);
     }
 
-    // Actualizar configuración
+    @Transactional
     public ConfiguracionIzipay actualizarConfiguracion(Long id, ConfiguracionIzipayDTO dto) {
         ConfiguracionIzipay config = configuracionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException(
@@ -117,7 +124,14 @@ public class ConfiguracionIzipayService {
         if (dto.getUrlPago() != null) config.setUrlPago(dto.getUrlPago());
         if (dto.getUrlToken() != null) config.setUrlToken(dto.getUrlToken());
         if (dto.getMoneda() != null) config.setMoneda(dto.getMoneda());
-        if (dto.getActivo() != null) config.setActivo(dto.getActivo());
+
+        if (dto.getActivo() != null) {
+            config.setActivo(dto.getActivo());
+            if (dto.getActivo() && config.getEmpresa() != null) {
+                desactivarConfiguracionesActivas(config.getEmpresa().getId());
+                config.setActivo(true);
+            }
+        }
 
         if (dto.getEmpresaId() != null) {
             Empresa empresa = empresaRepository.findById(dto.getEmpresaId())
