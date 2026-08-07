@@ -9,7 +9,7 @@ build:
     - mvn clean package -DskipTests
   artifacts:
     paths:
-      - target/ms-pagos.war
+      - target/ms-pagos-0.0.1.war
     expire_in: 1 hour
 
 deploy:
@@ -23,7 +23,7 @@ deploy:
     - chmod 700 ~/.ssh
     - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
   script:
-    - scp target/ms-pagos.war $SSH_USER@$SSH_HOST:/root/ms-pagos.war
+    - scp target/ms-pagos-0.0.1.war $SSH_USER@$SSH_HOST:/root/ms-pagos.war
     - ssh $SSH_USER@$SSH_HOST "rm -rf /home/backend/ms-pagos-online/ms-pagos-0.0.1.war && mkdir /home/backend/ms-pagos-online/ms-pagos-0.0.1.war && unzip -q /root/ms-pagos.war -d /home/backend/ms-pagos-online/ms-pagos-0.0.1.war && docker restart ms-pagos-online"
   only:
     - main
