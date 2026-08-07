@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * SEC-IZI-008: Configuración CORS.
- * Permite solicitudes desde el frontend de onboarding y entornos de desarrollo.
+ * Permite solicitudes desde el frontend de onboarding y todos los dominios del proyecto.
  */
 @Configuration
 public class CorsConfig {
@@ -19,12 +19,12 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOriginPatterns(
-                                // Servidor de producción — todos los puertos del mismo host
+                                // Dominios Cloudflare de producción
+                                "https://*.sistemas9noa.com",
+                                "https://sistemas9noa.com",
+                                // IPs del servidor (acceso directo)
                                 "http://192.171.100.23",
                                 "http://192.171.100.23:*",
-                                // Servidor anterior
-                                "http://10.234.105.176",
-                                "http://10.234.105.176:*",
                                 // Desarrollo local
                                 "http://localhost:*",
                                 "http://127.0.0.1:*"
