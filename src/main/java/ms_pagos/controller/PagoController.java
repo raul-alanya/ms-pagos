@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import ms_pagos.dto.ApiResponseDTO;
 import ms_pagos.dto.PageResponseDTO;
+import ms_pagos.dto.PagoAdminDTO;
 import ms_pagos.dto.PagoRechazoDTO;
 import ms_pagos.dto.PagoRequestDTO;
 import ms_pagos.dto.PagoResponseDTO;
@@ -20,13 +21,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pagos")
@@ -67,57 +72,72 @@ public class PagoController {
                 .body(ApiResponseDTO.ok("Datos de pago registrados exitosamente", pago));
     }
 
-    @Operation(summary = "Listar pagos paginados",
-        description = "Retorna pagos con PAN enmascarado y sin CVV. " +
-                      "Parámetros: page (0-indexed), size (máx 50), sort (ej: id,desc).")
-    @ApiResponse(responseCode = "200", description = "Lista paginada de pagos")
+    @Operation(summary = "Listar pagos para el panel administrador",
+        description = "Retorna todos los pagos (aprobados, rechazados y pendientes) con su sumatoria. " +
+                      "Filtros opcionales: estado, referencia, cajaId, desde, hasta. " +
+                      "Paginación opcional con page y size (máx 50); si no se envían, retorna todos.")
+    @ApiResponse(responseCode = "200", description = "Lista de pagos obtenida exitosamente")
     @GetMapping
-    public ResponseEntity<ApiResponseDTO<PageResponseDTO<PagoSafeDTO>>> listarPagos(
+    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> listarPagos(
             @Parameter(description = "Número de página (0-indexed)", example = "0")
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) Integer page,
             @Parameter(description = "Tamaño de página (máximo 50)", example = "10")
-            @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Campo de orden", example = "id")
-            @RequestParam(defaultValue = "id") String sort,
-            @Parameter(description = "Dirección: asc o desc", example = "desc")
-            @RequestParam(defaultValue = "desc") String direction) {
+            @RequestParam(required = false) Integer size,
+            @Parameter(description = "Filtrar por estado: APROBADO, RECHAZADO o PENDIENTE", example = "APROBADO")
+            @RequestParam(required = false) String estado,
+            @Parameter(description = "Filtrar por referencia (búsqueda parcial)", example = "ORD-1786239304703")
+            @RequestParam(required = false) String referencia,
+            @Parameter(description = "Filtrar por ID de caja", example = "1")
+            @RequestParam(required = false) Long cajaId,
+            @Parameter(description = "Fecha inicial (yyyy-MM-dd'T'HH:mm:ss)", example = "2026-08-01T00:00:00")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime desde,
+            @Parameter(description = "Fecha final (yyyy-MM-dd'T'HH:mm:ss)", example = "2026-08-31T23:59:59")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime hasta) {
 
-        int safeSize = Math.min(size, MAX_PAGE_SIZE);
-        Sort.Direction dir = "asc".equalsIgnoreCase(direction) ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Pageable pageable = PageRequest.of(page, safeSize, Sort.by(dir, sort));
+        List<PagoAdminDTO> filtrados = pagoService.listarPagosAdmin(estado, referencia, cajaId, desde, hasta);
 
-        PageResponseDTO<PagoSafeDTO> resultado = PageResponseDTO.from(pagoService.listarPagos(pageable));
+        List<PagoAdminDTO> contenido = filtrados;
+        if (page != null || size != null) {
+            int pag = page != null ? Math.max(page, 0) : 0;
+            int tam = size != null ? Math.min(Math.max(size, 1), MAX_PAGE_SIZE) : DEFAULT_PAGE_SIZE;
+            int inicio = Math.min(pag * tam, filtrados.size());
+            int fin = Math.min(inicio + tam, filtrados.size());
+            contenido = new ArrayList<>(filtrados.subList(inicio, fin));
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("contenido", contenido);
+        data.put("resumen", pagoService.resumenPagos(filtrados));
         return ResponseEntity.ok()
                 .headers(noCacheHeaders())
-                .body(ApiResponseDTO.ok("Pagos obtenidos exitosamente", resultado));
+                .body(ApiResponseDTO.ok("Pagos obtenidos exitosamente", data));
     }
 
     @Operation(summary = "Obtener pago por ID",
-        description = "Retorna pago con PAN enmascarado y sin CVV")
+        description = "Retorna el pago con los campos de consulta del panel administrador")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Pago encontrado"),
         @ApiResponse(responseCode = "404", description = "Pago no encontrado")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<PagoSafeDTO>> obtenerPago(
-            @Parameter(description = "ID del pago", example = "1") @PathVariable Long id) {
-        return pagoService.obtenerPagoPorId(id)
+    public ResponseEntity<ApiResponseDTO<PagoAdminDTO>> obtenerPago(
+            @Parameter(description = "ID del pago", example = "38") @PathVariable Long id) {
+        return pagoService.obtenerPagoAdminPorId(id)
                 .map(p -> ResponseEntity.ok()
                         .headers(noCacheHeaders())
-                        .<ApiResponseDTO<PagoSafeDTO>>body(ApiResponseDTO.ok("Pago encontrado", PagoSafeDTO.from(p))))
+                        .<ApiResponseDTO<PagoAdminDTO>>body(ApiResponseDTO.ok("Pago encontrado", p)))
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponseDTO.error("Pago no encontrado con ID: " + id)));
     }
 
     @Operation(summary = "Buscar pagos por referencia",
-        description = "Retorna pagos con PAN enmascarado y sin CVV")
+        description = "Retorna pagos con los campos de consulta del panel administrador")
     @ApiResponse(responseCode = "200", description = "Búsqueda realizada exitosamente")
     @GetMapping("/referencia/{reference}")
-    public ResponseEntity<ApiResponseDTO<List<PagoSafeDTO>>> buscarPorReferencia(
+    public ResponseEntity<ApiResponseDTO<List<PagoAdminDTO>>> buscarPorReferencia(
             @Parameter(description = "Referencia de la orden", example = "ORD-001")
             @PathVariable String reference) {
-        List<PagoSafeDTO> pagos = pagoService.buscarPorReferencia(reference)
-                .stream().map(PagoSafeDTO::from).collect(Collectors.toList());
+        List<PagoAdminDTO> pagos = pagoService.buscarPorReferenciaAdmin(reference);
         return ResponseEntity.ok()
                 .headers(noCacheHeaders())
                 .body(ApiResponseDTO.ok("Búsqueda completada", pagos));
@@ -138,6 +158,26 @@ public class PagoController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .headers(noCacheHeaders())
                 .body(ApiResponseDTO.ok("Respuesta de pago registrada exitosamente", result));
+    }
+
+    @Operation(summary = "Recibir notificación IPN de IZIPAY",
+        description = "Webhook que IZIPAY invoca al final del pago (URL de notificación). " +
+                      "Verifica la firma HMAC-SHA256 y actualiza el estado del pago. " +
+                      "Debe responder 200 para confirmar la recepción.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "IPN recibido y procesado"),
+        @ApiResponse(responseCode = "400", description = "Firma inválida o datos incorrectos")
+    })
+    @PostMapping("/ipn")
+    public ResponseEntity<String> recibirIpn(
+            @RequestParam(name = "kr-answer", required = false) String krAnswer,
+            @RequestParam(name = "kr-hash", required = false) String krHash,
+            @RequestParam(name = "kr-hash-key", required = false) String krHashKey) {
+        boolean ok = pagoService.procesarIpn(krAnswer, krHash, krHashKey);
+        if (ok) {
+            return ResponseEntity.ok("OK");
+        }
+        return ResponseEntity.badRequest().body("FAIL");
     }
 
     @Operation(summary = "Listar respuestas de pago paginadas",

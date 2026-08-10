@@ -133,4 +133,18 @@ public class EmpresaController {
         Empresa empresa = empresaService.desactivarEmpresa(id);
         return ResponseEntity.ok(ApiResponseDTO.ok("Empresa desactivada exitosamente", empresa));
     }
+
+    @Operation(summary = "Eliminar empresa",
+        description = "Elimina la empresa (borrado lógico: queda inactiva para no romper " +
+                      "las llaves foráneas de sus configuraciones IZIPAY).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Empresa eliminada exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Empresa no encontrada")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponseDTO<Empresa>> eliminarEmpresa(
+            @Parameter(description = "ID de la empresa", example = "1") @PathVariable Long id) {
+        Empresa empresa = empresaService.eliminarEmpresa(id);
+        return ResponseEntity.ok(ApiResponseDTO.ok("Empresa eliminada exitosamente", empresa));
+    }
 }

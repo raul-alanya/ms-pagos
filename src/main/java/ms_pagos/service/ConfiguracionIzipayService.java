@@ -1,5 +1,6 @@
 package ms_pagos.service;
 
+import ms_pagos.config.IzipayClient;
 import ms_pagos.dto.ConfiguracionIzipayDTO;
 import ms_pagos.dto.TokenResponseDTO;
 import ms_pagos.entity.ConfiguracionIzipay;
@@ -25,6 +26,9 @@ public class ConfiguracionIzipayService {
 
     @Autowired
     private EmpresaRepository empresaRepository;
+
+    @Autowired
+    private IzipayClient izipayClient;
 
     /** BUS-IZI-004: garantiza una sola config activa por empresa. */
     private void desactivarConfiguracionesActivas(Long empresaId) {
@@ -67,7 +71,7 @@ public class ConfiguracionIzipayService {
         return configuracionRepository.save(config);
     }
 
-    /** SEC-IZI-004/005 + BUS-IZI-001: verifica activa, NO expone credenciales. */
+    /** SEC-IZI-004/005 + BUS-IZI-001: verifica activa y obtiene el formToken de sesión. */
     public TokenResponseDTO generarToken(Long id) {
         ConfiguracionIzipay config = configuracionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException(
@@ -78,10 +82,13 @@ public class ConfiguracionIzipayService {
                     "La configuración ID " + id + " está inactiva y no puede usarse para pagos.");
         }
 
+        String formToken = izipayClient.crearTokenSesion(config);
+
         TokenResponseDTO response = new TokenResponseDTO();
+        response.setToken(formToken);
         response.setMerchantCode(config.getMerchantCode());
         response.setUrlPago(config.getUrlPago());
-        response.setMensaje("Configuración activa verificada correctamente");
+        response.setMensaje("Token generado exitosamente");
         response.setEstado("SUCCESS");
         return response;
     }
@@ -90,10 +97,13 @@ public class ConfiguracionIzipayService {
         ConfiguracionIzipay config = configuracionRepository.findFirstByActivoTrue()
                 .orElseThrow(() -> new RuntimeException("No existe configuración IZIPAY activa"));
 
+        String formToken = izipayClient.crearTokenSesion(config);
+
         TokenResponseDTO response = new TokenResponseDTO();
+        response.setToken(formToken);
         response.setMerchantCode(config.getMerchantCode());
         response.setUrlPago(config.getUrlPago());
-        response.setMensaje("Configuración activa verificada correctamente");
+        response.setMensaje("Token generado exitosamente");
         response.setEstado("SUCCESS");
         return response;
     }

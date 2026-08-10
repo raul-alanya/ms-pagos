@@ -46,6 +46,15 @@ public class PagoSafeDTO {
     @Schema(description = "Tipo de transacción", example = "Sale")
     private String transactiontype;
 
+    @Schema(description = "Token del formulario de pago hospedado de IZIPAY", example = "eyJhbGciOiJIUzI1NiJ9...")
+    private String formToken;
+
+    @Schema(description = "Clave pública IZIPAY para desplegar el formulario de pago", example = "69332831:testpublickey_...")
+    private String publicKey;
+
+    @Schema(description = "URL del script JavaScript del formulario de pago de IZIPAY", example = "https://static.micuentaweb.pe/static/js/krypton-client/V4.0/stable/kr-payment-form.min.js")
+    private String urlJs;
+
     /**
      * Construye un PagoSafeDTO enmascarando el PAN y omitiendo CVV y cardexpiry.
      */

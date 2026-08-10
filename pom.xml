@@ -26,12 +26,11 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
-		<!-- Tomcat embebido, marcado como "provided" para que NO se empaquete dentro del WAR.
-		     Payara ya provee su propio contenedor servlet. -->
+		<!-- Tomcat embebido incluido por defecto (viene de spring-boot-starter-web).
+		     Permite ejecutar el WAR con "java -jar" y también desplegarlo en Payara. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-tomcat</artifactId>
-			<scope>provided</scope>
 		</dependency>
 
 		<!-- Spring Data JPA -->

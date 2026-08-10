@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 // BUS-IZI-002: referencia única por transacción para evitar cargos duplicados
 @Table(name = "pago_request", uniqueConstraints = {
@@ -64,4 +66,14 @@ public class PagoRequest {
 
     @Column(name = "estado", length = 50)
     private String estado;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

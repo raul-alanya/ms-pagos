@@ -17,29 +17,28 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Datos de envío para procesar un pago online")
 public class PagoRequestDTO {
 
-    // VAL-IZI-001: PAN debe ser exactamente 16 dígitos numéricos
-    @NotBlank(message = "El número de tarjeta es obligatorio")
+    // INT-IZI-003: la tarjeta ya NO es obligatoria. Con el formulario hospedado
+    // de IZIPAY, la captura de PAN/CVV la hace IZIPAY (nunca llega a ms-pagos).
+    // Estos campos quedan solo para compatibilidad con clientes antiguos; si se
+    // envían, se validan igual que antes.
     @Size(min = 16, max = 16, message = "El número de tarjeta debe tener exactamente 16 dígitos")
     @Pattern(regexp = "\\d{16}", message = "El número de tarjeta debe contener solo dígitos numéricos (0-9)")
-    @Schema(description = "Número de tarjeta de crédito/débito (16 dígitos numéricos)", example = "4111111111111111")
+    @Schema(description = "Número de tarjeta (opcional con formulario hospedado)", example = "4111111111111111")
     private String cardnumber;
 
-    @NotBlank(message = "El nombre del titular es obligatorio")
     @Size(min = 3, max = 100, message = "El nombre del titular debe tener entre 3 y 100 caracteres")
     @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$", message = "El nombre del titular solo debe contener letras y espacios")
-    @Schema(description = "Nombre del titular de la tarjeta", example = "Juan Perez")
+    @Schema(description = "Nombre del titular (opcional con formulario hospedado)", example = "Juan Perez")
     private String cardholdername;
 
-    @NotBlank(message = "El CVV es obligatorio")
     @Size(min = 3, max = 4, message = "El CVV debe tener 3 o 4 dígitos")
     @Pattern(regexp = "\\d{3,4}", message = "El CVV solo debe contener dígitos numéricos")
-    @Schema(description = "Código de seguridad CVV", example = "123")
+    @Schema(description = "Código de seguridad CVV (opcional con formulario hospedado)", example = "123")
     private String cvv;
 
     // VAL-IZI-002: formato validado aquí, vigencia validada en el service
-    @NotBlank(message = "La fecha de expiración es obligatoria")
     @Pattern(regexp = "^(0[1-9]|1[0-2])/([0-9]{2})$", message = "La fecha de expiración debe tener formato MM/YY")
-    @Schema(description = "Fecha de expiración de la tarjeta (MM/YY)", example = "12/26")
+    @Schema(description = "Fecha de expiración de la tarjeta (opcional con formulario hospedado)", example = "12/26")
     private String cardexpiry;
 
     @NotNull(message = "El monto total es obligatorio")

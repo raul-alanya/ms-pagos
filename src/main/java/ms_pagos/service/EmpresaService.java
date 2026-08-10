@@ -86,4 +86,15 @@ public class EmpresaService {
         empresa.setActivo(false);
         return empresaRepository.save(empresa);
     }
+
+    /**
+     * DELETE /api/empresas/{id}: elimina (borrado lógico) una empresa marcándola
+     * como inactiva para no violar las llaves foráneas de configuraciones.
+     */
+    public Empresa eliminarEmpresa(Long id) {
+        Empresa empresa = empresaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+        empresa.setActivo(false);
+        return empresaRepository.save(empresa);
+    }
 }

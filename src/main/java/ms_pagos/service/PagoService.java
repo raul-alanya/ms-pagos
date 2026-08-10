@@ -1,21 +1,29 @@
 package ms_pagos.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ms_pagos.config.CajaClient;
+import ms_pagos.config.IzipayClient;
+import ms_pagos.dto.PagoAdminDTO;
 import ms_pagos.dto.PagoRechazoDTO;
 import ms_pagos.dto.PagoRequestDTO;
 import ms_pagos.dto.PagoResponseDTO;
 import ms_pagos.dto.PagoResponseResultDTO;
 import ms_pagos.dto.PagoSafeDTO;
+import ms_pagos.entity.ConfiguracionIzipay;
 import ms_pagos.entity.PagoRechazo;
 import ms_pagos.entity.PagoRequest;
 import ms_pagos.entity.PagoResponse;
+import ms_pagos.repository.ConfiguracionIzipayRepository;
 import ms_pagos.repository.PagoRechazoRepository;
 import ms_pagos.repository.PagoRequestRepository;
 import ms_pagos.repository.PagoResponseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -23,7 +31,11 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -41,6 +53,27 @@ public class PagoService {
 
     @Autowired
     private CajaClient cajaClient;
+
+    @Autowired
+    private IzipayClient izipayClient;
+
+    @Autowired
+    private ConfiguracionIzipayRepository configuracionRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    // URL del JS del formulario de pago hospedado de IZIPAY
+    @Value("${izipay.js-url:https://static.micuentaweb.pe/static/js/krypton-client/V4.0/stable/kr-payment-form.min.js}")
+    private String izipayJsUrl;
+
+    // URL de notificación IPN a la que IZIPAY reportará el resultado del pago
+    @Value("${izipay.ipn-url:https://pagos.sistemas9noa.com/api/pagos/ipn}")
+    private String izipayIpnUrl;
+
+    // URL de retorno del cliente tras finalizar el pago en IZIPAY
+    @Value("${izipay.return-url:https://pagos.sistemas9noa.com}")
+    private String izipayReturnUrl;
 
     // ─── VALIDACIONES PRIVADAS ───────────────────────────────────────────────
 
@@ -81,8 +114,15 @@ public class PagoService {
     // ─── PAGO REQUEST ────────────────────────────────────────────────────────
 
     public PagoSafeDTO registrarPago(PagoRequestDTO dto) {
-        validarLuhn(dto.getCardnumber());
-        validarFechaVigencia(dto.getCardexpiry());
+        // INT-IZI-003: con el formulario hospedado de IZIPAY la tarjeta no llega.
+        // Si algún cliente antiguo aún la envía, se valida como antes.
+        boolean tarjetaPresente = dto.getCardnumber() != null && !dto.getCardnumber().isBlank();
+        if (tarjetaPresente) {
+            validarLuhn(dto.getCardnumber());
+            if (dto.getCardexpiry() != null && !dto.getCardexpiry().isBlank()) {
+                validarFechaVigencia(dto.getCardexpiry());
+            }
+        }
 
         if (!pagoRequestRepository.findByReference(dto.getReference()).isEmpty()) {
             throw new IllegalStateException(
@@ -96,11 +136,19 @@ public class PagoService {
                     + " no existe, está cerrada o no está disponible.");
         }
 
+        ConfiguracionIzipay config = configuracionRepository.findFirstByActivoTrue()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No existe una configuración IZIPAY activa. Contacte al administrador."));
+
         PagoRequest pago = new PagoRequest();
-        pago.setCardnumber(dto.getCardnumber());
+        // INT-IZI-003: solo se persiste el PAN/CVV si el cliente antiguo lo envió.
+        // Con el formulario hospedado de IZIPAY no se almacena información de tarjeta.
+        if (tarjetaPresente) {
+            pago.setCardnumber(dto.getCardnumber());
+            pago.setCvv(dto.getCvv());
+            pago.setCardexpiry(dto.getCardexpiry());
+        }
         pago.setCardholdername(dto.getCardholdername());
-        pago.setCvv(dto.getCvv());
-        pago.setCardexpiry(dto.getCardexpiry());
         pago.setTotalamount(dto.getTotalamount());
         pago.setReference(dto.getReference());
         pago.setEmail(dto.getEmail());
@@ -113,7 +161,18 @@ public class PagoService {
         pago.setCajaId(dto.getCajaId());
         pago.setEstado("PENDIENTE");
 
-        return PagoSafeDTO.from(pagoRequestRepository.save(pago));
+        PagoRequest saved = pagoRequestRepository.save(pago);
+
+        // INT-IZI-001: llama a IZIPAY CreatePayment para obtener el formToken
+        String formToken = izipayClient.crearPago(config, saved.getReference(),
+                saved.getTotalamount(), saved.getCurrency(), saved.getEmail(),
+                saved.getCardholdername(), izipayReturnUrl, izipayReturnUrl, izipayIpnUrl);
+
+        PagoSafeDTO safe = PagoSafeDTO.from(saved);
+        safe.setFormToken(formToken);
+        safe.setPublicKey(config.getPublicKey());
+        safe.setUrlJs(izipayJsUrl);
+        return safe;
     }
 
     // PERF-IZI-001: listado paginado — devuelve Page<PagoSafeDTO>
@@ -131,6 +190,107 @@ public class PagoService {
 
     public List<PagoRequest> buscarPorReferencia(String reference) {
         return pagoRequestRepository.findByReference(reference);
+    }
+
+    // ─── CONSULTA ADMIN: listado, filtros y sumatorias ───────────────────────
+
+    /**
+     * Lista todos los pagos (aprobados, rechazados y pendientes) para el panel
+     * administrador, aplicando los filtros opcionales recibidos.
+     */
+    public List<PagoAdminDTO> listarPagosAdmin(String estado, String referencia, Long cajaId,
+                                               LocalDateTime desde, LocalDateTime hasta) {
+        return pagoRequestRepository.findAll(Sort.by(Sort.Direction.DESC, "id")).stream()
+                .filter(p -> matchesAdmin(p, estado, referencia, cajaId, desde, hasta))
+                .map(PagoAdminDTO::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Calcula la sumatoria de montos por estado y los totales del listado filtrado.
+     */
+    public Map<String, Object> resumenPagos(List<PagoAdminDTO> pagos) {
+        double total = 0;
+        double totalAprobado = 0;
+        double totalRechazado = 0;
+        double totalPendiente = 0;
+        int cantidadAprobado = 0;
+        int cantidadRechazado = 0;
+        int cantidadPendiente = 0;
+
+        for (PagoAdminDTO pago : pagos) {
+            double monto = pago.getTotalamount() != null ? pago.getTotalamount() : 0;
+            total += monto;
+            String estado = pago.getEstado() == null ? "PENDIENTE" : pago.getEstado().toUpperCase(Locale.ROOT);
+            switch (estado) {
+                case "APROBADO" -> {
+                    totalAprobado += monto;
+                    cantidadAprobado++;
+                }
+                case "RECHAZADO" -> {
+                    totalRechazado += monto;
+                    cantidadRechazado++;
+                }
+                default -> {
+                    totalPendiente += monto;
+                    cantidadPendiente++;
+                }
+            }
+        }
+
+        Map<String, Object> resumen = new LinkedHashMap<>();
+        resumen.put("total", round(total));
+        resumen.put("totalAprobado", round(totalAprobado));
+        resumen.put("totalRechazado", round(totalRechazado));
+        resumen.put("totalPendiente", round(totalPendiente));
+        resumen.put("cantidad", pagos.size());
+        resumen.put("cantidadAprobado", cantidadAprobado);
+        resumen.put("cantidadRechazado", cantidadRechazado);
+        resumen.put("cantidadPendiente", cantidadPendiente);
+        return resumen;
+    }
+
+    public Optional<PagoAdminDTO> obtenerPagoAdminPorId(Long id) {
+        return pagoRequestRepository.findById(id).map(PagoAdminDTO::from);
+    }
+
+    public List<PagoAdminDTO> buscarPorReferenciaAdmin(String reference) {
+        return pagoRequestRepository.findByReference(reference).stream()
+                .map(PagoAdminDTO::from)
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchesAdmin(PagoRequest pago, String estado, String referencia,
+                                 Long cajaId, LocalDateTime desde, LocalDateTime hasta) {
+        if (estado != null && !estado.isBlank()
+                && !estado.trim().equalsIgnoreCase(pago.getEstado())) {
+            return false;
+        }
+        if (referencia != null && !referencia.isBlank()
+                && (pago.getReference() == null || !pago.getReference().toLowerCase(Locale.ROOT)
+                        .contains(referencia.trim().toLowerCase(Locale.ROOT)))) {
+            return false;
+        }
+        if (cajaId != null && !cajaId.equals(pago.getCajaId())) {
+            return false;
+        }
+        if (desde != null || hasta != null) {
+            LocalDateTime creado = pago.getCreatedAt();
+            if (creado == null) {
+                return false;
+            }
+            if (desde != null && creado.isBefore(desde)) {
+                return false;
+            }
+            if (hasta != null && creado.isAfter(hasta)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private double round(double valor) {
+        return Math.round(valor * 100.0) / 100.0;
     }
 
     // ─── PAGO RESPONSE ───────────────────────────────────────────────────────
@@ -179,6 +339,72 @@ public class PagoService {
         result.setFechaRespuesta(saved.getFechaRespuesta());
         result.setMensaje(saved.getMensaje());
         return result;
+    }
+
+    /**
+     * INT-IZI-002: Procesa la notificación IPN (webhook) enviada por IZIPAY
+     * al final del pago. Verifica la firma HMAC-SHA256 y actualiza el estado
+     * del pago original (busca por la referencia de la orden).
+     *
+     * @return true si el webhook fue válido y procesado
+     */
+    public boolean procesarIpn(String krAnswer, String krHash, String krHashKey) {
+        ConfiguracionIzipay config = configuracionRepository.findFirstByActivoTrue().orElse(null);
+        if (config == null) {
+            System.err.println("IPN: no existe configuración IZIPAY activa");
+            return false;
+        }
+
+        if (!izipayClient.validarFirmaIPN(krAnswer, krHash, krHashKey, config)) {
+            System.err.println("IPN: firma HMAC inválida");
+            return false;
+        }
+
+        try {
+            JsonNode answer = objectMapper.readTree(krAnswer);
+            String orderStatus = answer.path("orderStatus").asText("UNPAID");
+            String orderId = answer.path("orderDetails").path("orderId").asText("");
+            String transaccion = answer.path("orderDetails").path("transactionUuid").asText("");
+            String codigoRespuesta = answer.path("errorCode").asText("00");
+
+            List<PagoRequest> pagos = pagoRequestRepository.findByReference(orderId);
+            if (pagos.isEmpty()) {
+                System.err.println("IPN: no existe pago con referencia " + orderId);
+                return false;
+            }
+            PagoRequest pagoOriginal = pagos.get(0);
+
+            boolean aprobado = "PAID".equalsIgnoreCase(orderStatus)
+                    || "AUTHORISED".equalsIgnoreCase(orderStatus);
+
+            PagoResponse response = new PagoResponse();
+            response.setCodigoRespuesta(aprobado ? "00" : codigoRespuesta);
+            response.setCodigoTransaccion(
+                    !transaccion.isEmpty() ? transaccion : generarCodigoTransaccion());
+            response.setEstado(aprobado ? "APROBADO" : "RECHAZADO");
+            response.setFechaRespuesta(LocalDate.now().toString());
+            response.setMensaje(aprobado
+                    ? "Pago aprobado por IZIPAY (IPN). Estado: " + orderStatus
+                    : "Pago rechazado por IZIPAY (IPN). Estado: " + orderStatus);
+            response.setPagoRequestId(pagoOriginal.getId());
+
+            PagoResponse saved = pagoResponseRepository.save(response);
+
+            if (aprobado && pagoOriginal.getCajaId() != null) {
+                cajaClient.agregarMontoCaja(pagoOriginal.getCajaId(),
+                        pagoOriginal.getTotalamount(), pagoOriginal.getId());
+            }
+            pagoOriginal.setEstado(saved.getEstado());
+            pagoRequestRepository.save(pagoOriginal);
+
+            System.out.println("IPN procesado: referencia=" + orderId
+                    + " estado=" + saved.getEstado() + " txn=" + saved.getCodigoTransaccion());
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("IPN: error al procesar kr-answer: " + e.getMessage());
+            return false;
+        }
     }
 
     // PERF-IZI-001: listado paginado de respuestas
