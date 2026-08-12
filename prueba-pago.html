@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prueba ms-pagos + IZIPAY (temporal)</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 24px; background: #f5f6fa; }
+  .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  label { display: block; margin: 8px 0 4px; font-weight: 600; font-size: 13px; }
+  input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+  button { margin-top: 14px; padding: 10px 16px; background: #1a73e8; color: #fff; border: 0; border-radius: 4px; cursor: pointer; font-size: 14px; }
+  button.secondary { background: #5f6368; }
+  pre { background: #263238; color: #b2dfdb; padding: 12px; border-radius: 4px; overflow: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+  #kr-payment-form { min-height: 320px; }
+</style>
+</head>
+<body>
+  <h2>Validación ms-pagos + IZIPAY (herramienta temporal)</h2>
+
+  <div class="card">
+    <label>Monto (S/)</label>
+    <input id="monto" type="number" step="0.01" value="100.00">
+    <label>Referencia</label>
+    <input id="referencia" type="text" value="PRUEBA-WEB-001">
+    <label>Email</label>
+    <input id="email" type="email" value="cliente@test.com">
+    <label>cajaId</label>
+    <input id="cajaId" type="number" value="1">
+    <br>
+    <button id="btnGenerar">1) Generar pago (POST /procesar)</button>
+    <button id="btnEstado" class="secondary">2) Consultar estado (GET /referencia)</button>
+    <pre id="log">Sin operaciones todavía.</pre>
+  </div>
+
+  <div class="card">
+    <h3>Formulario de IZIPAY</h3>
+    <p>Al pagar con la tarjeta de prueba <b>VISA 4970 1000 0000 0055 / 12/25 / CVV 123</b>, IZIPAY llama al IPN y luego redirige a la return-url configurada.</p>
+    <div id="kr-payment-form"></div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const BASE = "https://pagos.sistemas9noa.com/api/pagos";
+
+    function log(texto) {
+      const previo = $("log").textContent;
+      $("log").textContent = (previo === "Sin operaciones todavía." ? "" : previo + "\n\n") + texto;
+    }
+
+    $("btnGenerar").addEventListener("click", async () => {
+      const body = {
+        totalamount: parseFloat($("monto").value),
+        reference: $("referencia").value.trim(),
+        email: $("email").value.trim(),
+        cajaId: parseInt($("cajaId").value, 10)
+      };
+      log("POST " + BASE + "/procesar\n" + JSON.stringify(body, null, 2));
+      try {
+        const res = await fetch(BASE + "/procesar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const json = await res.json();
+        log("HTTP " + res.status + "\n" + JSON.stringify(json, null, 2));
+
+        const data = json.data;
+        if (res.ok && data && data.formToken) {
+          cargarFormulario(data.formToken, data.publicKey, data.urlJs);
+        }
+      } catch (e) {
+        log("ERROR: " + e.message);
+      }
+    });
+
+    function cargarFormulario(formToken, publicKey, urlJs) {
+      const cont = $("kr-payment-form");
+      // Limpiar el contenedor y el script previo para que el formulario
+      // se vuelva a dibujar con el token nuevo (si no, queda en blanco).
+      cont.innerHTML = "";
+      cont.removeAttribute("kr-form-token");
+      const prev = document.getElementById("kr-script");
+      if (prev) prev.remove();
+
+      cont.className = "kr-embedded";
+      cont.setAttribute("kr-form-token", formToken);
+
+      const script = document.createElement("script");
+      script.id = "kr-script";
+      script.src = urlJs;
+      script.setAttribute("kr-public-key", publicKey);
+      script.setAttribute("kr-language", "es-PE");
+      script.setAttribute("kr-post-url-success", BASE + "/respuesta");
+      script.onload = () => log("Script de IZIPAY cargado. El formulario se monta solo en el div kr-embedded.");
+      script.onerror = () => log("ERROR: no se pudo cargar el script de IZIPAY. Revisa urlJs y publicKey.");
+      document.body.appendChild(script);
+    }
+
+    $("btnEstado").addEventListener("click", async () => {
+      const ref = $("referencia").value.trim();
+      const url = BASE + "/referencia/" + encodeURIComponent(ref);
+      log("GET " + url);
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        log("HTTP " + res.status + "\n" + JSON.stringify(json, null, 2));
+      } catch (e) {
+        log("ERROR: " + e.message);
+      }
+    });
+  </script>
+</body>
+</html>

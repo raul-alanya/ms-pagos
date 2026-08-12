@@ -161,12 +161,14 @@ public class PagoService {
         pago.setCajaId(dto.getCajaId());
         pago.setEstado("PENDIENTE");
 
-        PagoRequest saved = pagoRequestRepository.save(pago);
-
         // INT-IZI-001: llama a IZIPAY CreatePayment para obtener el formToken
-        String formToken = izipayClient.crearPago(config, saved.getReference(),
-                saved.getTotalamount(), saved.getCurrency(), saved.getEmail(),
-                saved.getCardholdername(), izipayReturnUrl, izipayReturnUrl, izipayIpnUrl);
+        // Se obtiene el token ANTES de persistir para no dejar pagos PENDIENTE
+        // huérfanos cuando IZIPAY rechaza o falla la conexión.
+        String formToken = izipayClient.crearPago(config, pago.getReference(),
+                pago.getTotalamount(), pago.getCurrency(), pago.getEmail(),
+                pago.getCardholdername(), izipayReturnUrl, izipayReturnUrl, izipayIpnUrl);
+
+        PagoRequest saved = pagoRequestRepository.save(pago);
 
         PagoSafeDTO safe = PagoSafeDTO.from(saved);
         safe.setFormToken(formToken);
@@ -320,15 +322,9 @@ public class PagoService {
 
         PagoResponse saved = pagoResponseRepository.save(response);
 
-        if ("APROBADO".equals(saved.getEstado()) && pagoOriginal.getCajaId() != null) {
-            cajaClient.agregarMontoCaja(pagoOriginal.getCajaId(),
-                    pagoOriginal.getTotalamount(), pagoOriginal.getId());
-            pagoOriginal.setEstado("APROBADO");
-            pagoRequestRepository.save(pagoOriginal);
-        } else if ("RECHAZADO".equals(saved.getEstado())) {
-            pagoOriginal.setEstado("RECHAZADO");
-            pagoRequestRepository.save(pagoOriginal);
-        }
+        // SEC-IZI-007: el endpoint /respuesta NO modifica el estado del pago ni
+        // registra movimientos de caja. La única vía autorizada para aprobar y
+        // sumar dinero a caja es el IPN (firma HMAC verificada por IZIPAY).
 
         PagoResponseResultDTO result = new PagoResponseResultDTO();
         result.setId(saved.getId());
@@ -373,6 +369,14 @@ public class PagoService {
                 return false;
             }
             PagoRequest pagoOriginal = pagos.get(0);
+
+            // IDEMP-IZI-001: si IZIPAY reenvía el IPN (retry) y la respuesta ya
+            // se procesó, se omite para no duplicar el movimiento de caja ni el registro.
+            if (pagoResponseRepository.findByPagoRequestId(pagoOriginal.getId()).isPresent()) {
+                System.out.println("IPN: respuesta ya procesada para el pago "
+                        + pagoOriginal.getId() + ". Se omite para evitar duplicados.");
+                return true;
+            }
 
             boolean aprobado = "PAID".equalsIgnoreCase(orderStatus)
                     || "AUTHORISED".equalsIgnoreCase(orderStatus);

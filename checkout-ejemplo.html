@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout - Ejemplo para el equipo frontend</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 24px; background: #f5f6fa; }
+  .card { background: #fff; border-radius: 8px; padding: 20px; margin: 0 auto 16px; max-width: 480px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  button { padding: 12px 20px; background: #1a73e8; color: #fff; border: 0; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; }
+  .precio { font-size: 26px; font-weight: 700; margin: 8px 0; }
+</style>
+</head>
+<body>
+  <!-- PASO 1: el frontend muestra el curso con su precio y el botón Pagar -->
+  <div class="card" id="vistaInicial">
+    <h2>Curso de Java</h2>
+    <p class="precio">S/ 49.99</p>
+    <button id="btnPagar">Pagar ahora</button>
+  </div>
+
+  <!-- PASO 2 y 3: aquí se monta el formulario de IZIPAY (se dibuja solo) -->
+  <div class="card" id="vistaPago" style="display:none">
+    <h3>Paga con tu tarjeta</h3>
+    <div id="pay" class="kr-embedded"></div>
+  </div>
+
+  <!-- PASO 6: resultado -->
+  <div class="card" id="vistaResultado" style="display:none">
+    <h3 id="txtResultado"></h3>
+  </div>
+
+  <script>
+    const BASE = "https://pagos.sistemas9noa.com/api/pagos";
+
+    document.getElementById("btnPagar").addEventListener("click", async () => {
+      // 1) Crear el pago en el backend
+      const res = await fetch(BASE + "/procesar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          totalamount: 49.99,
+          reference: "ORD-" + Date.now(),
+          email: "cliente@email.com",
+          cajaId: 1
+        })
+      });
+      const json = await res.json();
+      const data = json.data;
+
+      // 2) Montar el formulario de IZIPAY: un div con kr-form-token + el script con kr-public-key
+      const cont = document.getElementById("pay");
+      cont.className = "kr-embedded";
+      cont.setAttribute("kr-form-token", data.formToken);
+
+      const script = document.createElement("script");
+      script.src = data.urlJs;
+      script.setAttribute("kr-public-key", data.publicKey);
+      script.setAttribute("kr-language", "es-PE");
+      // opcional: script.setAttribute("kr-post-url-success", "https://tudominio.com/pago-exitoso");
+
+      document.getElementById("vistaInicial").style.display = "none";
+      document.getElementById("vistaPago").style.display = "block";
+      document.body.appendChild(script);
+    });
+
+    // 3) Al volver de IZIPAY, consultar el estado del pago por referencia
+    async function consultarEstado(reference) {
+      const res = await fetch(BASE + "/referencia/" + encodeURIComponent(reference));
+      const json = await res.json();
+      const pago = json.data[0];
+      document.getElementById("vistaPago").style.display = "none";
+      document.getElementById("vistaResultado").style.display = "block";
+      document.getElementById("txtResultado").textContent =
+        pago.estado === "APROBADO" ? "¡Compra exitosa!" : "Pago " + pago.estado;
+    }
+    window.consultarEstado = consultarEstado;
+  </script>
+</body>
+</html>
