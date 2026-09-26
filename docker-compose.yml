@@ -8,7 +8,7 @@ services:
     container_name: db_pagos
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: Admin123
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: db_pagos
     ports:
       - "3307:3306"
@@ -16,7 +16,7 @@ services:
       - db_data:/var/lib/mysql
       - ./db_init.sql:/docker-entrypoint-initdb.d/db_init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pAdmin123"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,7 +31,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/db_pagos?useSSL=false&serverTimezone=America/Lima&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Admin123
+      SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     depends_on:
       db:
